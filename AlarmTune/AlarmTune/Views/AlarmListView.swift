@@ -81,18 +81,18 @@ struct AlarmListView: View {
 
     private var alarmListContent: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: listSpacing) {
                 NextAlarmIndicator(text: viewModel.nextAlarmText)
                     .padding(.top, 8)
 
                 ForEach(viewModel.groupedAlarms, id: \.category) { group in
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: groupSpacing) {
                         if !group.category.isEmpty && group.category != "Other" {
-                            HStack {
+                            HStack(spacing: 8) {
                                 Image(systemName: categoryIcon(group.category))
-                                    .font(.subheadline)
+                                    .font(.system(size: categoryIconSize))
                                 Text(group.category)
-                                    .font(.headline.weight(.semibold))
+                                    .font(.system(size: categoryFontSize, weight: .semibold))
                             }
                             .foregroundColor(categoryColor(group.category))
                             .padding(.horizontal, 4)
@@ -126,6 +126,22 @@ struct AlarmListView: View {
             .padding()
             .frame(maxWidth: maxContentWidth)
         }
+    }
+
+    private var listSpacing: CGFloat {
+        isPad ? 24 : 16
+    }
+
+    private var groupSpacing: CGFloat {
+        isPad ? 16 : 12
+    }
+
+    private var categoryIconSize: CGFloat {
+        isPad ? 18 : 14
+    }
+
+    private var categoryFontSize: CGFloat {
+        isPad ? 20 : 16
     }
 
     private func categoryIcon(_ category: String) -> String {
