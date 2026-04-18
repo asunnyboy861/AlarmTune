@@ -1,0 +1,77 @@
+name: AlarmTune
+options:
+  bundleIdPrefix: com.zzoutuo
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+    INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+    INFOPLIST_KEY_UILaunchScreen_Generation: YES
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
+    INFOPLIST_KEY_CFBundleDisplayName: "AlarmTune"
+
+targets:
+  AlarmTune:
+    type: application
+    platform: iOS
+    sources:
+      - path: AlarmTune
+        excludes:
+          - "Assets.xcassets"
+      - path: AlarmTune/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zzoutuo.AlarmTune
+        INFOPLIST_FILE: AlarmTune/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_EMIT_LOC_STRINGS: YES
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UIBackgroundModes: "audio"
+        INFOPLIST_KEY_NSUserNotificationsUsageDescription: "AlarmTune needs notifications to play your alarms at the right time."
+    entitlements:
+      path: AlarmTune/AlarmTune.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+
+  AlarmTuneTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - AlarmTuneTests
+    dependencies:
+      - target: AlarmTune
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zzoutuo.AlarmTuneTests
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        GENERATE_INFOPLIST_FILE: YES
+
+  AlarmTuneUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - AlarmTuneUITests
+    dependencies:
+      - target: AlarmTune
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.zzoutuo.AlarmTuneUITests
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        GENERATE_INFOPLIST_FILE: YES
