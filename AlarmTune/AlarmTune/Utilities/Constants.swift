@@ -39,4 +39,12 @@ enum AppConstants {
         ]
         static let defaultSubject = "Other"
     }
+
+    enum Layout {
+        static let maxContentWidth: CGFloat = 600
+        static let cardCornerRadius: CGFloat = 16
+        static let largeCardCornerRadius: CGFloat = 20
+        static let cardPadding: CGFloat = 16
+        static let largeCardPadding: CGFloat = 24
+    }
 }

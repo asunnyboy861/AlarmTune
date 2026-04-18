@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeedbackView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var selectedSubject: String = AppConstants.Feedback.defaultSubject
     @State private var customSubject: String = ""
     @State private var name: String = ""
@@ -51,38 +52,40 @@ struct FeedbackView: View {
                 }
             }
         }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 
     private var subjectSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: subjectSpacing) {
                 ForEach(subjects, id: \.self) { subject in
                     Button {
                         selectedSubject = subject
                         HapticService.shared.selection()
                     } label: {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 12) {
                             Image(systemName: subjectIcon(subject))
-                                .font(.body)
-                                .frame(width: 24)
+                                .font(.system(size: iconSize))
+                                .frame(width: iconFrameWidth)
                                 .foregroundColor(selectedSubject == subject ? .accentColor : .secondary)
 
                             Text(subject)
-                                .font(.body)
+                                .font(.system(size: subjectFontSize))
                                 .foregroundColor(.primary)
 
                             Spacer()
 
                             if selectedSubject == subject {
                                 Image(systemName: "checkmark")
-                                    .font(.caption.weight(.bold))
+                                    .font(.system(size: checkmarkSize, weight: .bold))
                                     .foregroundColor(.accentColor)
                             }
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
+                        .padding(.vertical, subjectButtonPaddingVertical)
+                        .padding(.horizontal, subjectButtonPaddingHorizontal)
                         .background(
-                            RoundedRectangle(cornerRadius: 10)
+                            RoundedRectangle(cornerRadius: AppConstants.Layout.largeCardCornerRadius)
                                 .fill(selectedSubject == subject ? Color.accentColor.opacity(0.1) : Color.gray.opacity(0.05))
                         )
                     }
@@ -92,7 +95,8 @@ struct FeedbackView: View {
                 if selectedSubject == "Other" {
                     TextField("Enter your topic", text: $customSubject)
                         .textFieldStyle(.roundedBorder)
-                        .padding(.top, 4)
+                        .font(.system(size: inputFontSize))
+                        .padding(.top, 8)
                 }
             }
         } header: {
@@ -103,6 +107,7 @@ struct FeedbackView: View {
     private var nameSection: some View {
         Section {
             TextField("Your Name", text: $name)
+                .font(.system(size: inputFontSize))
         } header: {
             Text("Name")
         }
@@ -114,6 +119,7 @@ struct FeedbackView: View {
                 .keyboardType(.emailAddress)
                 .textContentType(.emailAddress)
                 .autocapitalization(.none)
+                .font(.system(size: inputFontSize))
         } header: {
             Text("Email")
         }
@@ -124,13 +130,15 @@ struct FeedbackView: View {
             ZStack(alignment: .topLeading) {
                 if message.isEmpty {
                     Text("Describe your feedback...")
+                        .font(.system(size: inputFontSize))
                         .foregroundColor(.secondary.opacity(0.5))
                         .padding(.top, 8)
                         .padding(.leading, 4)
                 }
 
                 TextEditor(text: $message)
-                    .frame(minHeight: 120)
+                    .font(.system(size: inputFontSize))
+                    .frame(minHeight: messageMinHeight)
             }
         } header: {
             Text("Message")
@@ -147,18 +155,71 @@ struct FeedbackView: View {
                     if isSubmitting {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(progressScale)
                     } else {
                         Text("Submit Feedback")
-                            .fontWeight(.semibold)
+                            .font(.system(size: submitFontSize, weight: .semibold))
                     }
                     Spacer()
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, submitButtonPaddingVertical)
             }
             .disabled(isSubmitting || !isValid)
             .listRowBackground(isValid ? Color.accentColor : Color.gray.opacity(0.3))
             .foregroundColor(.white)
         }
+    }
+
+    private var isPad: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var subjectSpacing: CGFloat {
+        isPad ? 12 : 10
+    }
+
+    private var iconSize: CGFloat {
+        isPad ? 22 : 18
+    }
+
+    private var iconFrameWidth: CGFloat {
+        isPad ? 28 : 24
+    }
+
+    private var subjectFontSize: CGFloat {
+        isPad ? 18 : 16
+    }
+
+    private var checkmarkSize: CGFloat {
+        isPad ? 16 : 13
+    }
+
+    private var subjectButtonPaddingVertical: CGFloat {
+        isPad ? 14 : 8
+    }
+
+    private var subjectButtonPaddingHorizontal: CGFloat {
+        isPad ? 16 : 12
+    }
+
+    private var inputFontSize: CGFloat {
+        isPad ? 18 : 16
+    }
+
+    private var messageMinHeight: CGFloat {
+        isPad ? 160 : 120
+    }
+
+    private var submitFontSize: CGFloat {
+        isPad ? 20 : 17
+    }
+
+    private var submitButtonPaddingVertical: CGFloat {
+        isPad ? 16 : 4
+    }
+
+    private var progressScale: CGFloat {
+        isPad ? 1.3 : 1.0
     }
 
     private var isValid: Bool {

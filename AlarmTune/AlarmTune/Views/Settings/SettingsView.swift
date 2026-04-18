@@ -3,13 +3,14 @@ import SafariServices
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var showFeedback = false
     @State private var showPrivacyPolicy = false
     @State private var showTerms = false
     @State private var showSupport = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 appSection
                 supportSection
@@ -19,12 +20,14 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
                 }
             }
             .sheet(isPresented: $showFeedback) {
                 FeedbackView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showPrivacyPolicy) {
                 SafariView(url: URL(string: AppConstants.privacyURL)!)
@@ -40,27 +43,47 @@ struct SettingsView: View {
 
     private var appSection: some View {
         Section {
-            HStack {
+            HStack(spacing: isPad ? 20 : 12) {
                 Image(systemName: "alarm.fill")
-                    .font(.title2)
+                    .font(.system(size: iconSize))
                     .foregroundColor(.accentColor)
 
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("AlarmTune")
-                        .font(.headline)
+                        .font(.system(size: titleSize, weight: .semibold))
                     Text("Custom Volume for Every Alarm")
-                        .font(.caption)
+                        .font(.system(size: subtitleSize))
                         .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
                 Text("v1.0")
-                    .font(.caption)
+                    .font(.system(size: versionSize))
                     .foregroundColor(.secondary)
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, isPad ? 12 : 4)
         }
+    }
+
+    private var isPad: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var iconSize: CGFloat {
+        isPad ? 36 : 28
+    }
+
+    private var titleSize: CGFloat {
+        isPad ? 22 : 17
+    }
+
+    private var subtitleSize: CGFloat {
+        isPad ? 16 : 13
+    }
+
+    private var versionSize: CGFloat {
+        isPad ? 16 : 13
     }
 
     private var supportSection: some View {

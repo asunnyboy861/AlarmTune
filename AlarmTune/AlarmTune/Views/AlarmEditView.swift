@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AlarmEditView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ObservedObject var viewModel: AlarmViewModel
 
     let alarm: AlarmItem?
@@ -39,7 +40,7 @@ struct AlarmEditView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 timeSection
                 labelSection
@@ -51,10 +52,10 @@ struct AlarmEditView: View {
             .navigationTitle(alarm == nil ? "Add Alarm" : "Edit Alarm")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") { saveAlarm() }
                         .fontWeight(.semibold)
                 }
@@ -62,8 +63,11 @@ struct AlarmEditView: View {
             .sheet(isPresented: $showSoundPicker) {
                 SoundPickerView(selectedSound: $soundName)
                     .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
             }
         }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 
     private var timeSection: some View {
@@ -77,6 +81,7 @@ struct AlarmEditView: View {
             ), displayedComponents: .hourAndMinute)
             .labelsHidden()
             .datePickerStyle(.wheel)
+            .scaleEffect(datePickerScale)
         } header: {
             Text("Time")
         }
@@ -85,6 +90,7 @@ struct AlarmEditView: View {
     private var labelSection: some View {
         Section {
             TextField("Alarm Label", text: $label)
+                .font(.system(size: labelFontSize))
         } header: {
             Text("Label")
         }
@@ -223,5 +229,17 @@ struct AlarmEditView: View {
         }
 
         dismiss()
+    }
+
+    private var isPad: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var datePickerScale: CGFloat {
+        isPad ? 1.3 : 1.0
+    }
+
+    private var labelFontSize: CGFloat {
+        isPad ? 18 : 16
     }
 }

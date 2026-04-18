@@ -6,8 +6,10 @@ struct AlarmListView: View {
     @State private var editingAlarm: AlarmItem?
     @State private var showingSettings = false
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 Color(.systemGroupedBackground).ignoresSafeArea()
 
@@ -19,35 +21,55 @@ struct AlarmListView: View {
             }
             .navigationTitle("AlarmTune")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         showingSettings = true
                     } label: {
                         Image(systemName: "gearshape.fill")
+                            .font(.system(size: toolbarIconSize))
                     }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingAddAlarm = true
                         HapticService.shared.light()
                     } label: {
                         Image(systemName: "plus")
+                            .font(.system(size: toolbarIconSize))
                     }
                 }
             }
             .sheet(isPresented: $showingAddAlarm) {
                 AlarmEditView(viewModel: viewModel)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(item: $editingAlarm) { alarm in
                 AlarmEditView(viewModel: viewModel, alarm: alarm)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .fullScreenCover(isPresented: $viewModel.isRinging) {
                 AlarmRingView(viewModel: viewModel)
             }
         }
+    }
+
+    private var isPad: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var toolbarIconSize: CGFloat {
+        isPad ? 32 : 18
+    }
+
+    private var maxContentWidth: CGFloat {
+        isPad ? 800 : AppConstants.Layout.maxContentWidth
     }
 
     private var emptyStateView: some View {
@@ -59,18 +81,18 @@ struct AlarmListView: View {
 
     private var alarmListContent: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 NextAlarmIndicator(text: viewModel.nextAlarmText)
                     .padding(.top, 8)
 
                 ForEach(viewModel.groupedAlarms, id: \.category) { group in
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         if !group.category.isEmpty && group.category != "Other" {
                             HStack {
                                 Image(systemName: categoryIcon(group.category))
-                                    .font(.caption)
+                                    .font(.subheadline)
                                 Text(group.category)
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.headline.weight(.semibold))
                             }
                             .foregroundColor(categoryColor(group.category))
                             .padding(.horizontal, 4)
@@ -102,6 +124,7 @@ struct AlarmListView: View {
                 }
             }
             .padding()
+            .frame(maxWidth: maxContentWidth)
         }
     }
 
@@ -120,5 +143,3 @@ struct AlarmListView: View {
         }
     }
 }
-
-

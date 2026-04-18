@@ -2,20 +2,45 @@ import SwiftUI
 
 struct NextAlarmIndicator: View {
     let text: String
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: indicatorSpacing) {
             Image(systemName: "alarm")
-                .font(.caption)
+                .font(.system(size: iconSize))
                 .foregroundColor(.accentColor)
 
             Text(text)
-                .font(.caption)
+                .font(.system(size: textFontSize))
                 .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, indicatorPaddingHorizontal)
+        .padding(.vertical, indicatorPaddingVertical)
         .background(Color.accentColor.opacity(0.1))
-        .cornerRadius(8)
+        .cornerRadius(AppConstants.Layout.cardCornerRadius)
+    }
+
+    private var isPad: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var indicatorSpacing: CGFloat {
+        isPad ? 10 : 6
+    }
+
+    private var iconSize: CGFloat {
+        isPad ? 16 : 12
+    }
+
+    private var textFontSize: CGFloat {
+        isPad ? 16 : 12
+    }
+
+    private var indicatorPaddingHorizontal: CGFloat {
+        isPad ? 16 : 12
+    }
+
+    private var indicatorPaddingVertical: CGFloat {
+        isPad ? 10 : 6
     }
 }
