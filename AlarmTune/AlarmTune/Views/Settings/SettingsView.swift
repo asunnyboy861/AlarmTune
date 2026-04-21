@@ -8,11 +8,13 @@ struct SettingsView: View {
     @State private var showPrivacyPolicy = false
     @State private var showTerms = false
     @State private var showSupport = false
+    @State private var isTestPlaying = false
 
     var body: some View {
         NavigationStack {
             Form {
                 appSection
+                testAlarmSection
                 supportSection
                 legalSection
                 aboutSection
@@ -66,24 +68,79 @@ struct SettingsView: View {
         }
     }
 
-    private var isPad: Bool {
-        horizontalSizeClass == .regular
+    private var testAlarmSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Background Audio Test")
+                    .font(.system(size: 16, weight: .semibold))
+
+                VStack(alignment: .leading, spacing: 6) {
+                    testStep(number: 1, text: "Tap the button below to start playing")
+                    testStep(number: 2, text: "Press Home or swipe up to background the app")
+                    testStep(number: 3, text: "Audio should continue playing in background")
+                }
+
+                if isTestPlaying {
+                    HStack(spacing: 8) {
+                        Image(systemName: "waveform")
+                            .foregroundColor(.accentColor)
+                            .symbolEffect(.pulse)
+                        Text("Playing in background...")
+                            .font(.system(size: 13))
+                            .foregroundColor(.accentColor)
+                    }
+                }
+
+                Button {
+                    toggleTestAudio()
+                } label: {
+                    HStack {
+                        Image(systemName: isTestPlaying ? "stop.fill" : "play.fill")
+                        Text(isTestPlaying ? "Stop Test" : "Play Test Alarm")
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(isTestPlaying ? Color.red.opacity(0.9) : Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+            }
+            .padding(.vertical, 8)
+        } header: {
+            Text("Audio Test")
+        }
     }
 
-    private var iconSize: CGFloat {
-        isPad ? 36 : 28
+    private func testStep(number: Int, text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text("\(number)")
+                .font(.system(size: 11, weight: .bold))
+                .frame(width: 18, height: 18)
+                .background(Color.accentColor.opacity(0.2))
+                .foregroundColor(.accentColor)
+                .clipShape(Circle())
+
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
-    private var titleSize: CGFloat {
-        isPad ? 22 : 17
-    }
-
-    private var subtitleSize: CGFloat {
-        isPad ? 16 : 13
-    }
-
-    private var versionSize: CGFloat {
-        isPad ? 16 : 13
+    private func toggleTestAudio() {
+        if isTestPlaying {
+            AudioService.shared.stopAlarm()
+            isTestPlaying = false
+        } else {
+            AudioService.shared.playAlarm(
+                soundName: AppConstants.Sound.defaultSound,
+                volume: 0.7,
+                fadeIn: false
+            )
+            isTestPlaying = true
+        }
+        HapticService.shared.light()
     }
 
     private var supportSection: some View {
@@ -142,6 +199,26 @@ struct SettingsView: View {
             .font(.caption)
             .foregroundColor(.secondary)
         }
+    }
+
+    private var isPad: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    private var iconSize: CGFloat {
+        isPad ? 36 : 28
+    }
+
+    private var titleSize: CGFloat {
+        isPad ? 22 : 17
+    }
+
+    private var subtitleSize: CGFloat {
+        isPad ? 16 : 13
+    }
+
+    private var versionSize: CGFloat {
+        isPad ? 16 : 13
     }
 }
 

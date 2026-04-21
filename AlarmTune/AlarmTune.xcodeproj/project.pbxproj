@@ -15,16 +15,21 @@
 		219BCFD57FF2C7F1A64DE9DE /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F899173A6EEB210E6167A4CE /* FeedbackView.swift */; };
 		266E3A4290577D3DAA74A7E6 /* AlarmItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6704E5184E366545865C6893 /* AlarmItem.swift */; };
 		272A2D8DCCD97DABB2C129D6 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE99E9764DDA54B62D096C8C /* PersistenceController.swift */; };
+		39AB58B7EA8C916E329B9E62 /* ClassicAlarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = 7845F91D53F4CBA7703B97EB /* ClassicAlarm.caf */; };
 		3AF9563004F881EB60AB1058 /* AlarmEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FB63B4DC0A54D52783117AD /* AlarmEditView.swift */; };
 		5978E1C5F54E7262463A4757 /* AlarmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51372D9FA885C5AA5C1D7E22 /* AlarmViewModel.swift */; };
 		5AC907702A4C3FBEECC4853C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1B65354B78C487A175807C /* SettingsView.swift */; };
 		6206638CDB366BE12F840F50 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D90C227934B919BB2BFFF8 /* EmptyStateView.swift */; };
+		668F7221A88C70677B0F147B /* SoftBell.caf in Resources */ = {isa = PBXBuildFile; fileRef = 9DEE7C2898831FF7D1E9088D /* SoftBell.caf */; };
 		68119319737B6A1D79C1EE37 /* AlarmTuneTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C8830997E1CCBE7AFF80BC9 /* AlarmTuneTests.swift */; };
 		6E8E002C640F357F72B1E020 /* DateExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB535870A8E4ADD8AE021676 /* DateExtensions.swift */; };
 		6ECA801CD96370256790FE12 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FD85028350536C4ACAB015 /* Constants.swift */; };
 		7F91CD4F7090E3F4504DB12D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 947CCFA7C25C1ACABF5CBF81 /* ContentView.swift */; };
 		83135139C6BCD67F64B4C112 /* AlarmRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D158826A2F9F3BE91F64BE3 /* AlarmRingView.swift */; };
+		8FCDB9FBC10C256842DE083F /* NatureChirp.caf in Resources */ = {isa = PBXBuildFile; fileRef = 5695631329A9A5DEBEFC97FE /* NatureChirp.caf */; };
+		9DE2031CAA5843DEADF25165 /* DigitalBeep.caf in Resources */ = {isa = PBXBuildFile; fileRef = 00FAFE6BA406265A9F6DB918 /* DigitalBeep.caf */; };
 		A15C2A2ADDF750EC01C89AF2 /* AlarmTuneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587DE5E80C80DACE9CCB27F1 /* AlarmTuneApp.swift */; };
+		A90F2030A0CDF358A9E04C43 /* DayPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC3E9630446C6F08D5384B7 /* DayPickerView.swift */; };
 		AC9F96705FD20C55105978FC /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5A5449A6A642DDE2274C26 /* HapticService.swift */; };
 		B1D3485750683D2177CC79AA /* FeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2874E1E45AE5A0D08662229F /* FeedbackService.swift */; };
 		B589850725361B41A11FF25C /* VolumeSliderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58679B918399B2304757D1F9 /* VolumeSliderView.swift */; };
@@ -33,6 +38,7 @@
 		CCD43FFE07B2C2E05EBCFF28 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F33D5A6BBF199F2333A0DC /* AudioService.swift */; };
 		CF454998A5572F5417100F2F /* AlarmScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825A393691141B6D801A0D5C /* AlarmScheduler.swift */; };
 		D22DBCA0E113DA8B03E59017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B68A0D5474B70103932B4F7C /* Assets.xcassets */; };
+		D67C64E7F621205299D947D6 /* GentleMorning.caf in Resources */ = {isa = PBXBuildFile; fileRef = 6FA1B48939AE56D6AF49F27B /* GentleMorning.caf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,6 +59,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		00FAFE6BA406265A9F6DB918 /* DigitalBeep.caf */ = {isa = PBXFileReference; path = DigitalBeep.caf; sourceTree = "<group>"; };
 		0FB63B4DC0A54D52783117AD /* AlarmEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmEditView.swift; sourceTree = "<group>"; };
 		1AF85E80647AF840FE1FFDDE /* AlarmTuneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AlarmTuneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		279BC9816C897841D81A52A0 /* AlarmTuneUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -61,15 +68,20 @@
 		2D158826A2F9F3BE91F64BE3 /* AlarmRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRingView.swift; sourceTree = "<group>"; };
 		51372D9FA885C5AA5C1D7E22 /* AlarmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmViewModel.swift; sourceTree = "<group>"; };
 		52E6D0259DAD064AF274DCD2 /* AlarmTuneUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneUITests.swift; sourceTree = "<group>"; };
+		5695631329A9A5DEBEFC97FE /* NatureChirp.caf */ = {isa = PBXFileReference; path = NatureChirp.caf; sourceTree = "<group>"; };
 		58679B918399B2304757D1F9 /* VolumeSliderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeSliderView.swift; sourceTree = "<group>"; };
 		587DE5E80C80DACE9CCB27F1 /* AlarmTuneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneApp.swift; sourceTree = "<group>"; };
 		6704E5184E366545865C6893 /* AlarmItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmItem.swift; sourceTree = "<group>"; };
+		6FA1B48939AE56D6AF49F27B /* GentleMorning.caf */ = {isa = PBXFileReference; path = GentleMorning.caf; sourceTree = "<group>"; };
 		72F33D5A6BBF199F2333A0DC /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
+		7845F91D53F4CBA7703B97EB /* ClassicAlarm.caf */ = {isa = PBXFileReference; path = ClassicAlarm.caf; sourceTree = "<group>"; };
+		7AC3E9630446C6F08D5384B7 /* DayPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPickerView.swift; sourceTree = "<group>"; };
 		825A393691141B6D801A0D5C /* AlarmScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmScheduler.swift; sourceTree = "<group>"; };
 		8C8830997E1CCBE7AFF80BC9 /* AlarmTuneTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneTests.swift; sourceTree = "<group>"; };
 		8CFD4C74B418B47E969C2180 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		91774503CF29FB08A4E945E8 /* NextAlarmIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextAlarmIndicator.swift; sourceTree = "<group>"; };
 		947CCFA7C25C1ACABF5CBF81 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		9DEE7C2898831FF7D1E9088D /* SoftBell.caf */ = {isa = PBXFileReference; path = SoftBell.caf; sourceTree = "<group>"; };
 		AC6D604E53187CA1363D2742 /* AlarmTune.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlarmTune.entitlements; sourceTree = "<group>"; };
 		AE5664DEBA78E2286B559A88 /* AlarmRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRowView.swift; sourceTree = "<group>"; };
 		B606623C8DE841535DE1F094 /* SoundPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPickerView.swift; sourceTree = "<group>"; };
@@ -148,6 +160,7 @@
 				1EDFF27044E9E1EEE3968DA2 /* AlarmTune */,
 				D17B6FD20EB64F0AC6F8990C /* AlarmTuneTests */,
 				EB021ABD925FC25A861D6F2D /* AlarmTuneUITests */,
+				6D097E0A78CB2EA5A70512FF /* Sounds */,
 				653EE4BC41564E5A2BD32E29 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -160,6 +173,19 @@
 				F3941B19413FC59974E462D2 /* AlarmTuneUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6D097E0A78CB2EA5A70512FF /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				7845F91D53F4CBA7703B97EB /* ClassicAlarm.caf */,
+				00FAFE6BA406265A9F6DB918 /* DigitalBeep.caf */,
+				6FA1B48939AE56D6AF49F27B /* GentleMorning.caf */,
+				5695631329A9A5DEBEFC97FE /* NatureChirp.caf */,
+				9DEE7C2898831FF7D1E9088D /* SoftBell.caf */,
+			);
+			name = Sounds;
+			path = AlarmTune/Sounds;
 			sourceTree = "<group>";
 		};
 		77482FCEF6826057ABF80FD4 /* Utilities */ = {
@@ -212,6 +238,7 @@
 			isa = PBXGroup;
 			children = (
 				AE5664DEBA78E2286B559A88 /* AlarmRowView.swift */,
+				7AC3E9630446C6F08D5384B7 /* DayPickerView.swift */,
 				C2D90C227934B919BB2BFFF8 /* EmptyStateView.swift */,
 				91774503CF29FB08A4E945E8 /* NextAlarmIndicator.swift */,
 				58679B918399B2304757D1F9 /* VolumeSliderView.swift */,
@@ -303,13 +330,16 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					899EF66B780349D28A6DD0AC = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = JP4TN5PTS3;
+						ProvisioningStyle = Automatic;
 					};
 					8B4C8E748BB56162598928EB = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = JP4TN5PTS3;
+						ProvisioningStyle = Automatic;
 					};
 					C877B4AEE0D7E65B53BFD4E4 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = JP4TN5PTS3;
+						ProvisioningStyle = Automatic;
 						TestTargetID = 899EF66B780349D28A6DD0AC;
 					};
 				};
@@ -341,6 +371,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				D22DBCA0E113DA8B03E59017 /* Assets.xcassets in Resources */,
+				39AB58B7EA8C916E329B9E62 /* ClassicAlarm.caf in Resources */,
+				9DE2031CAA5843DEADF25165 /* DigitalBeep.caf in Resources */,
+				D67C64E7F621205299D947D6 /* GentleMorning.caf in Resources */,
+				8FCDB9FBC10C256842DE083F /* NatureChirp.caf in Resources */,
+				668F7221A88C70677B0F147B /* SoftBell.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -364,6 +399,7 @@
 				6ECA801CD96370256790FE12 /* Constants.swift in Sources */,
 				7F91CD4F7090E3F4504DB12D /* ContentView.swift in Sources */,
 				6E8E002C640F357F72B1E020 /* DateExtensions.swift in Sources */,
+				A90F2030A0CDF358A9E04C43 /* DayPickerView.swift in Sources */,
 				6206638CDB366BE12F840F50 /* EmptyStateView.swift in Sources */,
 				B1D3485750683D2177CC79AA /* FeedbackService.swift in Sources */,
 				219BCFD57FF2C7F1A64DE9DE /* FeedbackView.swift in Sources */,
@@ -445,7 +481,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = JP4TN5PTS3;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -460,6 +496,12 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = (
+					UIInterfaceOrientationPortrait,
+					UIInterfaceOrientationPortraitUpsideDown,
+					UIInterfaceOrientationLandscapeLeft,
+					UIInterfaceOrientationLandscapeRight,
+				);
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
@@ -477,9 +519,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -529,7 +569,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = JP4TN5PTS3;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -550,6 +590,12 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = (
+					UIInterfaceOrientationPortrait,
+					UIInterfaceOrientationPortraitUpsideDown,
+					UIInterfaceOrientationLandscapeLeft,
+					UIInterfaceOrientationLandscapeRight,
+				);
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
@@ -568,9 +614,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -588,9 +632,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -609,10 +651,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_ENTITLEMENTS = AlarmTune/AlarmTune.entitlements;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AlarmTune/Info.plist;
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "AlarmTune needs notifications to play your alarms at the right time.";
@@ -633,10 +674,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
 				CODE_SIGN_ENTITLEMENTS = AlarmTune/AlarmTune.entitlements;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AlarmTune/Info.plist;
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "AlarmTune needs notifications to play your alarms at the right time.";
@@ -656,9 +696,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

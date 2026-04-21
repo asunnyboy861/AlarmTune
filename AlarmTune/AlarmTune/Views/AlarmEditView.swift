@@ -18,6 +18,7 @@ struct AlarmEditView: View {
     @State private var isSnoozeEnabled: Bool = true
     @State private var snoozeDuration: Int = AppConstants.Alarm.defaultSnoozeMinutes
     @State private var category: String = ""
+    @State private var repeatDays: [Int] = []
     @State private var showSoundPicker = false
 
     init(viewModel: AlarmViewModel, alarm: AlarmItem? = nil) {
@@ -36,6 +37,7 @@ struct AlarmEditView: View {
             _isSnoozeEnabled = State(initialValue: alarm.isSnoozeEnabled)
             _snoozeDuration = State(initialValue: Int(alarm.snoozeDuration))
             _category = State(initialValue: alarm.wrappedCategory)
+            _repeatDays = State(initialValue: alarm.repeatDays as? [Int] ?? [])
         }
     }
 
@@ -43,6 +45,7 @@ struct AlarmEditView: View {
         NavigationStack {
             Form {
                 timeSection
+                repeatSection
                 labelSection
                 volumeSection
                 soundSection
@@ -84,6 +87,14 @@ struct AlarmEditView: View {
             .scaleEffect(datePickerScale)
         } header: {
             Text("Time")
+        }
+    }
+
+    private var repeatSection: some View {
+        Section {
+            DayPickerView(selectedDays: $repeatDays)
+        } header: {
+            Text("Repeat")
         }
     }
 
@@ -213,6 +224,7 @@ struct AlarmEditView: View {
             existingAlarm.isSnoozeEnabled = isSnoozeEnabled
             existingAlarm.snoozeDuration = Int16(snoozeDuration)
             existingAlarm.category = category.isEmpty ? nil : category
+            existingAlarm.repeatDays = repeatDays.isEmpty ? nil : repeatDays
             viewModel.updateAlarm(existingAlarm)
         } else {
             _ = viewModel.addAlarm(
@@ -224,7 +236,8 @@ struct AlarmEditView: View {
                 isFadeIn: isFadeIn,
                 fadeInDuration: fadeInDuration,
                 isVibrate: isVibrate,
-                category: category.isEmpty ? nil : category
+                category: category.isEmpty ? nil : category,
+                repeatDays: repeatDays.isEmpty ? nil : repeatDays
             )
         }
 

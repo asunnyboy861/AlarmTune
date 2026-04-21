@@ -15,6 +15,24 @@ enum AppConstants {
         static let maxSnoozeCount: Int = 3
         static let defaultFadeInDuration: Double = 5.0
         static let defaultVolume: Float = 0.55
+        static let minFadeInDuration: Double = 1.0
+        static let maxFadeInDuration: Double = 30.0
+        static let minSnoozeDuration: Int = 1
+        static let maxSnoozeDuration: Int = 30
+    }
+
+    enum Volume {
+        static let minVolume: Float = 0.0
+        static let maxVolume: Float = 1.0
+        static let previewThrottleInterval: TimeInterval = 0.3
+    }
+
+    enum DayPicker {
+        static let daySymbols = ["S", "M", "T", "W", "T", "F", "S"]
+        static let fullDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+        static let weekdays = [1, 2, 3, 4, 5]
+        static let weekends = [0, 6]
+        static let allDays = [0, 1, 2, 3, 4, 5, 6]
     }
 
     enum Sound {

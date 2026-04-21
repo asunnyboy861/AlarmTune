@@ -5,6 +5,8 @@ struct VolumeSliderView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     var onPreview: ((Float) -> Void)?
 
+    @State private var lastPreviewTime: Date = .distantPast
+
     private let presets: [(name: String, icon: String, value: Float)] = [
         ("Whisper", "speaker.fill", 0.15),
         ("Gentle", "speaker.wave.1.fill", 0.30),
@@ -40,6 +42,12 @@ struct VolumeSliderView: View {
             .scaleEffect(sliderScale)
             .onChange(of: volume) {
                 HapticService.shared.selection()
+                
+                let now = Date()
+                if now.timeIntervalSince(lastPreviewTime) > AppConstants.Volume.previewThrottleInterval {
+                    lastPreviewTime = now
+                    onPreview?(volume)
+                }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {

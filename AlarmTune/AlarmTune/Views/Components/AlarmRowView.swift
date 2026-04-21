@@ -33,6 +33,8 @@ struct AlarmRowView: View {
                     }
                 }
 
+                repeatDaysIndicator
+
                 volumeIndicator
             }
 
@@ -101,6 +103,24 @@ struct AlarmRowView: View {
                     .frame(width: volumeBarWidth, height: volumeBarHeight(index))
             }
         }
+    }
+
+    private var repeatDaysIndicator: some View {
+        Group {
+            if let days = alarm.repeatDays as? [Int], !days.isEmpty {
+                HStack(spacing: 2) {
+                    ForEach(0..<7, id: \.self) { index in
+                        Text(AppConstants.DayPicker.daySymbols[index])
+                            .font(.system(size: repeatDayFontSize, weight: days.contains(index) ? .bold : .regular))
+                            .foregroundColor(days.contains(index) ? .accentColor : .gray.opacity(0.4))
+                    }
+                }
+            }
+        }
+    }
+
+    private var repeatDayFontSize: CGFloat {
+        isPad ? 14 : 10
     }
 
     private var volumeBarWidth: CGFloat {

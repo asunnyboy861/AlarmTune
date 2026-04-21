@@ -27,7 +27,7 @@ class AlarmViewModel: ObservableObject {
         }
     }
 
-    func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, category: String?) -> AlarmItem {
+    func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, category: String?, repeatDays: [Int]? = nil) -> AlarmItem {
         let alarm = AlarmItem.create(in: context)
         alarm.hour = Int16(hour)
         alarm.minute = Int16(minute)
@@ -38,6 +38,7 @@ class AlarmViewModel: ObservableObject {
         alarm.fadeInDuration = fadeInDuration
         alarm.isVibrate = isVibrate
         alarm.category = category
+        alarm.repeatDays = repeatDays
 
         PersistenceController.shared.saveContext()
         AlarmScheduler.shared.scheduleAlarm(alarm)

@@ -27,6 +27,17 @@ class AlarmScheduler: NSObject {
     func scheduleAlarm(_ alarm: AlarmItem) {
         guard alarm.isEnabled else { return }
 
+        let content = createNotificationContent(for: alarm)
+        let repeatDays = alarm.repeatDays as? [Int] ?? []
+
+        if repeatDays.isEmpty {
+            scheduleOneTimeAlarm(alarm: alarm, content: content)
+        } else {
+            scheduleRepeatingAlarm(alarm: alarm, content: content, repeatDays: repeatDays)
+        }
+    }
+
+    private func createNotificationContent(for alarm: AlarmItem) -> UNMutableNotificationContent {
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = alarm.wrappedLabel
@@ -42,12 +53,15 @@ class AlarmScheduler: NSObject {
             "isSnoozeEnabled": alarm.isSnoozeEnabled,
             "snoozeDuration": Int(alarm.snoozeDuration)
         ]
+        return content
+    }
 
+    private func scheduleOneTimeAlarm(alarm: AlarmItem, content: UNMutableNotificationContent) {
         var dateComponents = DateComponents()
         dateComponents.hour = Int(alarm.hour)
         dateComponents.minute = Int(alarm.minute)
 
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
 
         let request = UNNotificationRequest(
             identifier: alarm.wrappedId,
@@ -57,7 +71,31 @@ class AlarmScheduler: NSObject {
 
         notificationCenter.add(request) { error in
             if let error = error {
-                print("Failed to schedule alarm: \(error.localizedDescription)")
+                print("Failed to schedule one-time alarm: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func scheduleRepeatingAlarm(alarm: AlarmItem, content: UNMutableNotificationContent, repeatDays: [Int]) {
+        for day in repeatDays {
+            var dateComponents = DateComponents()
+            dateComponents.hour = Int(alarm.hour)
+            dateComponents.minute = Int(alarm.minute)
+            dateComponents.weekday = day + 1
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+
+            let requestId = "\(alarm.wrappedId)-day\(day)"
+            let request = UNNotificationRequest(
+                identifier: requestId,
+                content: content,
+                trigger: trigger
+            )
+
+            notificationCenter.add(request) { error in
+                if let error = error {
+                    print("Failed to schedule repeating alarm for day \(day): \(error.localizedDescription)")
+                }
             }
         }
     }
@@ -99,8 +137,18 @@ class AlarmScheduler: NSObject {
     }
 
     func cancelAlarm(_ alarm: AlarmItem) {
-        notificationCenter.removePendingNotificationRequests(withIdentifiers: [alarm.wrappedId])
-        notificationCenter.removeDeliveredNotifications(withIdentifiers: [alarm.wrappedId])
+        var identifiers = [alarm.wrappedId]
+
+        if let repeatDays = alarm.repeatDays as? [Int] {
+            for day in repeatDays {
+                identifiers.append("\(alarm.wrappedId)-day\(day)")
+            }
+        }
+
+        identifiers.append("\(alarm.wrappedId)-snooze")
+
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
+        notificationCenter.removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
     func cancelAllAlarms() {

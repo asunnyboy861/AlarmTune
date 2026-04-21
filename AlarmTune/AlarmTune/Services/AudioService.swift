@@ -7,45 +7,126 @@ class AudioService: ObservableObject {
 
     private var audioPlayer: AVAudioPlayer?
     private var fadeTimer: Timer?
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
     @Published var isPlaying: Bool = false
     @Published var currentVolume: Float = 0.0
 
     private init() {
-        configureAudioSession()
+        setupNotifications()
     }
 
-    private func configureAudioSession() {
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioSessionInterruption),
+            name: AVAudioSession.interruptionNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMediaServicesReset),
+            name: AVAudioSession.mediaServicesWereResetNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+
+        switch type {
+        case .began:
+            DispatchQueue.main.async {
+                self.isPlaying = false
+            }
+        case .ended:
+            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
+                if options.contains(.shouldResume) {
+                    audioPlayer?.play()
+                    DispatchQueue.main.async {
+                        self.isPlaying = true
+                    }
+                }
+            }
+        @unknown default:
+            break
+        }
+    }
+
+    @objc private func handleMediaServicesReset(_ notification: Notification) {
+        configureAudioSession()
+        if isPlaying {
+            audioPlayer?.play()
+        }
+    }
+
+    @discardableResult
+    func configureAudioSession() -> Bool {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setCategory(.playback, mode: .default, options: [.duckOthers])
             try session.setActive(true)
+            return true
         } catch {
             print("Audio session configuration failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func beginBackgroundTask() {
+        endBackgroundTask()
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "AlarmPlayback") { [weak self] in
+            self?.endBackgroundTask()
+        }
+    }
+
+    private func endBackgroundTask() {
+        if backgroundTask != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTask)
+            backgroundTask = .invalid
         }
     }
 
     func playAlarm(soundName: String, volume: Float, fadeIn: Bool = false, fadeInDuration: Double = 5.0) {
         stopAlarm()
-        configureAudioSession()
+        beginBackgroundTask()
+
+        guard configureAudioSession() else {
+            endBackgroundTask()
+            return
+        }
 
         guard let soundURL = urlForSound(soundName) else {
             print("Sound file not found: \(soundName)")
+            endBackgroundTask()
             return
         }
 
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
             audioPlayer?.numberOfLoops = -1
-            audioPlayer?.prepareToPlay()
+            let prepared = audioPlayer?.prepareToPlay() ?? false
+            if !prepared {
+                print("Failed to prepare audio player")
+            }
 
             if fadeIn {
                 audioPlayer?.volume = 0
-                audioPlayer?.play()
-                startFadeIn(targetVolume: volume, duration: fadeInDuration)
+                let started = audioPlayer?.play() ?? false
+                if started {
+                    startFadeIn(targetVolume: volume, duration: fadeInDuration)
+                }
             } else {
                 audioPlayer?.volume = volume
-                audioPlayer?.play()
+                let started = audioPlayer?.play() ?? false
+                if !started {
+                    print("Audio player failed to start playback")
+                }
             }
 
             DispatchQueue.main.async {
@@ -54,6 +135,7 @@ class AudioService: ObservableObject {
             }
         } catch {
             print("Audio playback failed: \(error.localizedDescription)")
+            endBackgroundTask()
         }
     }
 
@@ -69,6 +151,7 @@ class AudioService: ObservableObject {
         }
 
         deactivateAudioSession()
+        endBackgroundTask()
     }
 
     func fadeOutAndStop(duration: Double = 2.0) {
@@ -98,7 +181,12 @@ class AudioService: ObservableObject {
 
     func previewSound(soundName: String, volume: Float) {
         stopAlarm()
-        configureAudioSession()
+        beginBackgroundTask()
+
+        guard configureAudioSession() else {
+            endBackgroundTask()
+            return
+        }
 
         guard let soundURL = urlForSound(soundName) else { return }
 
@@ -114,6 +202,7 @@ class AudioService: ObservableObject {
             }
         } catch {
             print("Preview playback failed: \(error.localizedDescription)")
+            endBackgroundTask()
         }
     }
 
@@ -148,18 +237,30 @@ class AudioService: ObservableObject {
     }
 
     private func urlForSound(_ name: String) -> URL? {
-        if let bundleURL = Bundle.main.url(forResource: name, withExtension: "caf", subdirectory: "Sounds") {
-            return bundleURL
+        let sanitizedName = name.replacingOccurrences(of: " ", with: "")
+        let extensions = ["caf", "mp3", "aiff", "wav", "m4a"]
+        let directories: [String?] = ["Sounds", nil]
+        
+        for dir in directories {
+            for candidate in [sanitizedName, name] {
+                for ext in extensions {
+                    if let url = Bundle.main.url(forResource: candidate, withExtension: ext, subdirectory: dir) {
+                        return url
+                    }
+                }
+            }
         }
-        if let bundleURL = Bundle.main.url(forResource: name, withExtension: "mp3", subdirectory: "Sounds") {
-            return bundleURL
+        
+        if let importedDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let customSoundsDir = importedDir.appendingPathComponent("ImportedSounds", isDirectory: true)
+            for ext in extensions {
+                let url = customSoundsDir.appendingPathComponent("\(sanitizedName).\(ext)")
+                if FileManager.default.fileExists(atPath: url.path) {
+                    return url
+                }
+            }
         }
-        if let bundleURL = Bundle.main.url(forResource: name, withExtension: "caf") {
-            return bundleURL
-        }
-        if let bundleURL = Bundle.main.url(forResource: name, withExtension: "mp3") {
-            return bundleURL
-        }
+        
         return nil
     }
 
