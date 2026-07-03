@@ -64,8 +64,8 @@ struct AlarmEditView: View {
                 }
             }
             .sheet(isPresented: $showSoundPicker) {
-                SoundPickerView(selectedSound: $soundName)
-                    .presentationDetents([.medium])
+                SoundPickerView(selectedSound: $soundName, previewVolume: volume)
+                    .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
         }
@@ -142,14 +142,16 @@ struct AlarmEditView: View {
                 HStack {
                     Text("Sound")
                     Spacer()
-                    Text(soundName)
+                    Text(displaySoundName)
                         .foregroundColor(.secondary)
+                        .lineLimit(1)
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
             .foregroundColor(.primary)
+            .accessibilityIdentifier("soundPickerButton")
         } header: {
             Text("Sound")
         }
@@ -209,6 +211,16 @@ struct AlarmEditView: View {
         } header: {
             Text("Category")
         }
+    }
+
+    /// 用于 UI 显示的铃声名：剥离 "imported:" / "appleMusic:" 前缀
+    private var displaySoundName: String {
+        if soundName.hasPrefix("imported:") {
+            return String(soundName.dropFirst("imported:".count))
+        } else if soundName.hasPrefix("appleMusic:") {
+            return MusicLibraryService.shared.displayName(for: soundName) ?? "Apple Music Song"
+        }
+        return soundName
     }
 
     private func saveAlarm() {

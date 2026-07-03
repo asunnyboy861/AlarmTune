@@ -40,13 +40,105 @@ enum AppConstants {
     }
 
     enum Sound {
-        static let builtInSounds = [
-            "Gentle Morning",
-            "Digital Beep",
-            "Nature Chirp",
-            "Soft Bell",
-            "Classic Alarm"
+        /// 铃声分类，与 AlarmItem.AlarmCategory 风格对齐
+        enum SoundCategory: String, CaseIterable, Identifiable {
+            case loud = "Loud"
+            case nature = "Nature"
+            case gentle = "Gentle"
+            case classic = "Classic"
+            case fun = "Fun"
+
+            var id: String { rawValue }
+
+            var displayName: String { rawValue }
+
+            var icon: String {
+                switch self {
+                case .loud:    return "speaker.wave.3.fill"
+                case .nature:  return "leaf.fill"
+                case .gentle:  return "cloud.sun.fill"
+                case .classic: return "bell.fill"
+                case .fun:     return "music.note.house.fill"
+                }
+            }
+
+            /// 分类图标背景色，使用系统语义色，兼容深色模式
+            var tint: String {
+                switch self {
+                case .loud:    return "red"
+                case .nature:  return "green"
+                case .gentle:  return "blue"
+                case .classic: return "orange"
+                case .fun:     return "purple"
+                }
+            }
+        }
+
+        /// 铃声来源类型，决定 urlForSound 的查找策略
+        enum SoundSource: String {
+            case builtIn = "builtIn"
+            case appleMusic = "appleMusic"
+            case imported = "imported"
+        }
+
+        /// 单个铃声的元数据描述
+        struct SoundInfo: Identifiable, Hashable {
+            let id: String
+            let displayName: String
+            let category: SoundCategory
+            let source: SoundSource
+            let isPremium: Bool
+
+            static func builtIn(name: String, category: SoundCategory, isPremium: Bool = false) -> SoundInfo {
+                SoundInfo(id: name, displayName: name, category: category, source: .builtIn, isPremium: isPremium)
+            }
+        }
+
+        /// 根据 soundName 前缀推断来源类型
+        static func source(for name: String) -> SoundSource {
+            if name.hasPrefix("appleMusic:") { return .appleMusic }
+            if name.hasPrefix("imported:")   { return .imported }
+            return .builtIn
+        }
+
+        static let builtInSounds: [SoundInfo] = [
+            // Loud
+            .builtIn(name: "Emergency Siren",  category: .loud),
+            .builtIn(name: "Air Horn",         category: .loud),
+            .builtIn(name: "Car Alarm",        category: .loud),
+            .builtIn(name: "Military Bugle",   category: .loud),
+            .builtIn(name: "Fire Alarm",       category: .loud),
+            .builtIn(name: "School Bell",      category: .loud),
+            // Nature
+            .builtIn(name: "Forest Birds",     category: .nature),
+            .builtIn(name: "Ocean Waves",      category: .nature),
+            .builtIn(name: "Rain Morning",     category: .nature),
+            .builtIn(name: "Creek Stream",     category: .nature),
+            .builtIn(name: "Wind Chime",       category: .nature),
+            .builtIn(name: "Thunder Roll",     category: .nature),
+            // Gentle
+            .builtIn(name: "Gentle Morning",   category: .gentle),
+            .builtIn(name: "Soft Bell",        category: .gentle),
+            .builtIn(name: "Piano Lullaby",    category: .gentle),
+            .builtIn(name: "Harp Dream",       category: .gentle),
+            .builtIn(name: "Zen Bowl",         category: .gentle),
+            .builtIn(name: "Sunrise Glow",     category: .gentle),
+            // Classic
+            .builtIn(name: "Classic Alarm",    category: .classic),
+            .builtIn(name: "Digital Beep",     category: .classic),
+            .builtIn(name: "Retro Ring",       category: .classic),
+            .builtIn(name: "Mechanical Tick",  category: .classic),
+            .builtIn(name: "Office Buzz",      category: .classic),
+            .builtIn(name: "Old Telephone",    category: .classic),
+            // Fun
+            .builtIn(name: "Nature Chirp",     category: .fun),
+            .builtIn(name: "Disco Wake",       category: .fun),
+            .builtIn(name: "Sunny Day",        category: .fun),
+            .builtIn(name: "Rhythm Beat",      category: .fun),
+            .builtIn(name: "Cheerful Tune",    category: .fun),
+            .builtIn(name: "Morning Coffee",   category: .fun),
         ]
+
         static let defaultSound = "Gentle Morning"
     }
 

@@ -1,11 +1,13 @@
 import Foundation
 import AVFoundation
 import UIKit
+import MediaPlayer
 
 class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
     static let shared = AudioService()
 
     private var audioPlayer: AVAudioPlayer?
+    private var musicPlayer: MPMusicPlayerController?
     private var fadeTimer: Timer?
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     private var isPreviewMode: Bool = false
@@ -98,8 +100,16 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         stopAlarm()
         beginBackgroundTask()
 
-        // F2-2 修复：闹钟播放前提升系统音量到 1.0，让 AVAudioPlayer.volume 真正独立控制
-        VolumeManager.shared.boostSystemVolume(forAlarmVolume: volume)
+        let source = AppConstants.Sound.source(for: soundName)
+
+        // 根据来源选择系统音量策略：
+        // - AVAudioPlayer（内置/导入）：系统音量提升到 1.0，由 audioPlayer.volume 独立控制
+        // - MPMusicPlayerController（Apple Music）：iOS 不支持 player.volume，直接将系统音量设为闹钟音量
+        if source == .appleMusic {
+            VolumeManager.shared.boostSystemVolume(to: volume)
+        } else {
+            VolumeManager.shared.boostSystemVolume(forAlarmVolume: volume)
+        }
 
         guard configureAudioSession() else {
             VolumeManager.shared.restoreSystemVolume()
@@ -107,8 +117,18 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             return
         }
 
-        guard let soundURL = urlForSound(soundName) else {
-            print("Sound file not found: \(soundName)")
+        switch source {
+        case .builtIn, .imported:
+            playLocalSound(name: soundName, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
+        case .appleMusic:
+            playAppleMusicSound(identifier: soundName, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
+        }
+    }
+
+    /// 播放本地文件（内置 + 导入），复用现有 AVAudioPlayer 逻辑
+    private func playLocalSound(name: String, volume: Float, fadeIn: Bool, fadeInDuration: Double) {
+        guard let soundURL = urlForSound(name) else {
+            print("Sound file not found: \(name)")
             VolumeManager.shared.restoreSystemVolume()
             endBackgroundTask()
             return
@@ -151,11 +171,53 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
 
+    /// 播放 Apple Music 歌曲（通过 persistentID 从音乐库查询）
+    /// 注意：iOS 不支持设置 MPMusicPlayerController.volume，音量已通过 VolumeManager.boostSystemVolume(to:) 设置
+    /// fade-in 对 Apple Music 暂不支持（受系统音量 API 限制）
+    private func playAppleMusicSound(identifier: String, volume: Float, fadeIn: Bool, fadeInDuration: Double) {
+        guard identifier.hasPrefix("appleMusic:"),
+              let persistentIDStr = identifier.split(separator: ":").last,
+              let persistentID = UInt64(persistentIDStr) else {
+            print("Invalid Apple Music identifier: \(identifier), fallback to default")
+            playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
+            return
+        }
+
+        let query = MPMediaQuery.songs()
+        query.addFilterPredicate(MPMediaPropertyPredicate(
+            value: NSNumber(value: persistentID),
+            forProperty: MPMediaItemPropertyPersistentID
+        ))
+        guard let items = query.items, !items.isEmpty else {
+            print("Apple Music song not found in library, fallback to default")
+            playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
+            return
+        }
+
+        let collection = MPMediaItemCollection(items: items)
+        let player = MPMusicPlayerController.applicationQueuePlayer
+        player.setQueue(with: collection)
+        musicPlayer = player
+        isPreviewMode = false
+
+        // iOS 限制：MPMusicPlayerController.volume 不可用，音量由系统音量控制
+        // 系统音量已在 playAlarm 中通过 VolumeManager.boostSystemVolume(to: volume) 设置
+        // fade-in 对 Apple Music 暂不支持
+        player.play()
+
+        DispatchQueue.main.async {
+            self.isPlaying = true
+            self.currentVolume = volume
+        }
+    }
+
     func stopAlarm() {
         fadeTimer?.invalidate()
         fadeTimer = nil
         audioPlayer?.stop()
         audioPlayer = nil
+        musicPlayer?.stop()
+        musicPlayer = nil
 
         DispatchQueue.main.async {
             self.isPlaying = false
@@ -201,6 +263,8 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         if isPreviewMode {
             audioPlayer?.stop()
             audioPlayer = nil
+            musicPlayer?.stop()
+            musicPlayer = nil
             fadeTimer?.invalidate()
             fadeTimer = nil
             isPreviewMode = false
@@ -211,7 +275,17 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
         guard configureAudioSession() else { return }
 
-        guard let soundURL = urlForSound(soundName) else { return }
+        let source = AppConstants.Sound.source(for: soundName)
+        switch source {
+        case .builtIn, .imported:
+            previewLocalSound(name: soundName, volume: volume)
+        case .appleMusic:
+            previewAppleMusicSound(identifier: soundName, volume: volume)
+        }
+    }
+
+    private func previewLocalSound(name: String, volume: Float) {
+        guard let soundURL = urlForSound(name) else { return }
 
         do {
             audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
@@ -227,6 +301,32 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             }
         } catch {
             print("Preview playback failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func previewAppleMusicSound(identifier: String, volume: Float) {
+        guard identifier.hasPrefix("appleMusic:"),
+              let persistentIDStr = identifier.split(separator: ":").last,
+              let persistentID = UInt64(persistentIDStr) else { return }
+
+        let query = MPMediaQuery.songs()
+        query.addFilterPredicate(MPMediaPropertyPredicate(
+            value: NSNumber(value: persistentID),
+            forProperty: MPMediaItemPropertyPersistentID
+        ))
+        guard let items = query.items, !items.isEmpty else { return }
+
+        let collection = MPMediaItemCollection(items: items)
+        let player = MPMusicPlayerController.applicationQueuePlayer
+        player.setQueue(with: collection)
+        musicPlayer = player
+        isPreviewMode = true
+        // iOS 限制：MPMusicPlayerController.volume 不可用，预览使用当前系统音量
+        player.play()
+
+        DispatchQueue.main.async {
+            self.isPlaying = true
+            self.currentVolume = volume
         }
     }
 
@@ -261,13 +361,28 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
 
-    private func urlForSound(_ name: String) -> URL? {
-        let sanitizedName = name.replacingOccurrences(of: " ", with: "")
+    /// 查找铃声文件
+    /// - 内置铃声：Bundle/Sounds/{SanitizedName}.{ext}
+    /// - 导入铃声：Documents/ImportedSounds/{SanitizedName}.{ext}
+    /// - 注意：soundName 可能带前缀（"imported:xxx"），需先剥离前缀再查找
+    func urlForSound(_ name: String) -> URL? {
+        // 剥离来源前缀（M5/M4 新增的 "imported:" 前缀）
+        let lookupName: String
+        if name.hasPrefix("imported:") {
+            lookupName = String(name.dropFirst("imported:".count))
+        } else if name.hasPrefix("appleMusic:") {
+            // Apple Music 铃声不通过文件查找，由 playAppleMusicSound 单独处理
+            return nil
+        } else {
+            lookupName = name
+        }
+
+        let sanitizedName = lookupName.replacingOccurrences(of: " ", with: "")
         let extensions = ["caf", "mp3", "aiff", "wav", "m4a"]
         let directories: [String?] = ["Sounds", nil]
-        
+
         for dir in directories {
-            for candidate in [sanitizedName, name] {
+            for candidate in [sanitizedName, lookupName] {
                 for ext in extensions {
                     if let url = Bundle.main.url(forResource: candidate, withExtension: ext, subdirectory: dir) {
                         return url
@@ -275,7 +390,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 }
             }
         }
-        
+
         if let importedDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let customSoundsDir = importedDir.appendingPathComponent("ImportedSounds", isDirectory: true)
             for ext in extensions {
@@ -285,7 +400,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 }
             }
         }
-        
+
         return nil
     }
 

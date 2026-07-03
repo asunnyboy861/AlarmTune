@@ -39,8 +39,9 @@ final class VolumeManager: ObservableObject {
     }
 
     /// 闹钟触发时调用：保存当前系统音量并提升到最大
-    /// - Parameter targetAlarmVolume: 闹钟设定的音量 (0.0 ~ 1.0)
+    /// - Parameter targetAlarmVolume: 闹钟设定的音量 (0.0 ~ 1.0)，仅用于日志记录
     /// - Returns: 是否成功提升系统音量
+    /// - Note: 用于 AVAudioPlayer 播放场景（AVAudioPlayer.volume 独立控制闹钟音量）
     @discardableResult
     func boostSystemVolume(forAlarmVolume targetAlarmVolume: Float) -> Bool {
         // 防止重复调用（多个闹钟同时触发时保护）
@@ -54,6 +55,22 @@ final class VolumeManager: ObservableObject {
             setSystemVolume(1.0)
         }
 
+        isAlarmActive = true
+        return true
+    }
+
+    /// 闹钟触发时调用：保存当前系统音量并设置为指定音量
+    /// - Parameter targetVolume: 目标系统音量 (0.0 ~ 1.0)
+    /// - Returns: 是否成功设置系统音量
+    /// - Note: 用于 MPMusicPlayerController 播放场景（iOS 不允许设置 player.volume，
+    ///   只能通过系统音量控制播放音量）
+    @discardableResult
+    func boostSystemVolume(to targetVolume: Float) -> Bool {
+        guard !isAlarmActive else { return true }
+
+        let current = currentSystemVolume
+        savedSystemVolume = current
+        setSystemVolume(targetVolume)
         isAlarmActive = true
         return true
     }

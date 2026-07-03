@@ -39,6 +39,7 @@ struct AlarmListView: View {
                         Image(systemName: "plus")
                             .font(.system(size: toolbarIconSize))
                     }
+                    .accessibilityIdentifier("addAlarmToolbarButton")
                 }
             }
             .sheet(isPresented: $showingAddAlarm) {

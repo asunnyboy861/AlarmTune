@@ -1,86 +1,258 @@
 import SwiftUI
+import MediaPlayer
 
 struct SoundPickerView: View {
     @Binding var selectedSound: String
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @State private var previewVolume: Float = 0.5
+    let previewVolume: Float
 
-    private let sounds = AppConstants.Sound.builtInSounds
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var showMusicPicker = false
+    @State private var showDocumentPicker = false
+    @State private var showImportLimitAlert = false
+    @State private var cachedAppleMusicSongs: [CachedSong] = []
+
+    @ObservedObject private var importService = SoundImportService.shared
+    @ObservedObject private var musicService = MusicLibraryService.shared
+
+    private let categories = AppConstants.Sound.SoundCategory.allCases
+    private let builtInSounds = AppConstants.Sound.builtInSounds
+
+    /// 包装缓存的 Apple Music 歌曲，使其符合 Identifiable
+    struct CachedSong: Identifiable, Hashable {
+        let key: String
+        let name: String
+        var id: String { key }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: soundListSpacing) {
-            Text("Alarm Sound")
-                .font(.system(size: titleFontSize, weight: .medium))
-                .foregroundColor(.secondary)
-
-            ForEach(sounds, id: \.self) { sound in
-                Button {
-                    selectedSound = sound
-                    AudioService.shared.previewSound(soundName: sound, volume: previewVolume)
-                    HapticService.shared.selection()
-                } label: {
-                    HStack(spacing: soundRowSpacing) {
-                        Image(systemName: selectedSound == sound ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: iconSize))
-                            .foregroundColor(selectedSound == sound ? .accentColor : .secondary)
-
-                        Text(sound)
-                            .font(.system(size: soundFontSize))
-                            .foregroundColor(.primary)
-
-                        Spacer()
-
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: playIconSize))
-                            .foregroundColor(.accentColor.opacity(0.7))
-                    }
-                    .padding(.vertical, soundRowPaddingVertical)
-                    .padding(.horizontal, soundRowPaddingHorizontal)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppConstants.Layout.largeCardCornerRadius)
-                            .fill(selectedSound == sound ? Color.accentColor.opacity(0.1) : Color.clear)
-                    )
-                    .contentShape(Rectangle())
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: sectionSpacing) {
+                    builtInSoundsSection
+                    appleMusicSection
+                    importedSection
                 }
-                .buttonStyle(.plain)
+                .padding()
+            }
+            .navigationTitle("Alarm Sound")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                refreshAppleMusicCache()
+                MusicLibraryService.shared.checkAuthorization()
+                SoundImportService.shared.refreshImportedSounds()
+            }
+            .sheet(isPresented: $showMusicPicker) {
+                MusicPickerWrapper(selectedSound: $selectedSound)
+                    .onDisappear { refreshAppleMusicCache() }
+            }
+            .sheet(isPresented: $showDocumentPicker) {
+                DocumentPickerWrapper { url in
+                    if SoundImportService.shared.importFile(from: url) {
+                        selectedSound = SoundImportService.shared.importedSounds.last?.id ?? selectedSound
+                    } else if !SoundImportService.shared.canImportMore {
+                        showImportLimitAlert = true
+                    }
+                }
+            }
+            .alert("Import Limit Reached", isPresented: $showImportLimitAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Free users can import up to \(SoundImportService.freeImportLimit) custom sound. Delete an existing one to import a new sound.")
             }
         }
-        .padding()
     }
 
-    private var isPad: Bool {
-        horizontalSizeClass == .regular
+    private func refreshAppleMusicCache() {
+        cachedAppleMusicSongs = MusicLibraryService.shared.cachedSongs().map { CachedSong(key: $0.key, name: $0.name) }
     }
 
-    private var soundListSpacing: CGFloat {
-        isPad ? 16 : 12
+    // MARK: - Built-in Sounds (by category)
+
+    private var builtInSoundsSection: some View {
+        VStack(alignment: .leading, spacing: categorySpacing) {
+            ForEach(categories) { category in
+                let soundsInCategory = builtInSounds.filter { $0.category == category }
+                if !soundsInCategory.isEmpty {
+                    SoundCategorySection(
+                        category: category,
+                        sounds: soundsInCategory,
+                        selectedSound: selectedSound,
+                        onSelect: { name in
+                            selectedSound = name
+                            HapticService.shared.selection()
+                        },
+                        onPlay: { name in
+                            AudioService.shared.previewSound(soundName: name, volume: previewVolume)
+                        }
+                    )
+                }
+            }
+        }
     }
 
-    private var titleFontSize: CGFloat {
-        isPad ? 18 : 15
+    // MARK: - Apple Music
+
+    private var appleMusicSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "music.note")
+                    .foregroundColor(.pink)
+                Text("Apple Music")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+
+            if musicService.authorized {
+                ForEach(cachedAppleMusicSongs) { song in
+                    SoundRow(
+                        name: song.name,
+                        isSelected: selectedSound == song.key,
+                        onPlay: {
+                            AudioService.shared.previewSound(soundName: song.key, volume: previewVolume)
+                        },
+                        onSelect: {
+                            selectedSound = song.key
+                            HapticService.shared.selection()
+                        }
+                    )
+                }
+
+                Button {
+                    showMusicPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Choose from Music Library")
+                    }
+                    .font(.system(size: 15))
+                    .foregroundColor(.accentColor)
+                }
+            } else {
+                Button {
+                    MusicLibraryService.shared.requestAuthorization { granted in
+                        if granted { showMusicPicker = true }
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "music.note.list")
+                        Text("Allow Music Library Access")
+                    }
+                    .font(.system(size: 15))
+                    .foregroundColor(.accentColor)
+                }
+            }
+        }
     }
 
-    private var soundRowSpacing: CGFloat {
-        isPad ? 14 : 12
+    // MARK: - Imported Sounds
+
+    private var importedSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "doc.badge.plus")
+                    .foregroundColor(.orange)
+                Text("Imported Sounds")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+
+            ForEach(importService.importedSounds) { sound in
+                SoundRow(
+                    name: sound.displayName,
+                    isSelected: selectedSound == sound.id,
+                    onPlay: {
+                        AudioService.shared.previewSound(soundName: sound.id, volume: previewVolume)
+                    },
+                    onSelect: {
+                        selectedSound = sound.id
+                        HapticService.shared.selection()
+                    }
+                )
+                .contextMenu {
+                    Button(role: .destructive) {
+                        _ = SoundImportService.shared.deleteSound(sound)
+                        if selectedSound == sound.id {
+                            selectedSound = AppConstants.Sound.defaultSound
+                        }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+
+            if importService.canImportMore {
+                Button {
+                    showDocumentPicker = true
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Import from Files")
+                        Text("(\(importService.remainingFreeImports) left)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .font(.system(size: 15))
+                    .foregroundColor(.accentColor)
+                }
+            } else {
+                HStack {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.yellow)
+                    Text("Free import limit reached")
+                        .font(.system(size: 15))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
     }
 
-    private var iconSize: CGFloat {
-        isPad ? 24 : 20
+    private var sectionSpacing: CGFloat { horizontalSizeClass == .regular ? 24 : 20 }
+    private var categorySpacing: CGFloat { horizontalSizeClass == .regular ? 20 : 16 }
+}
+
+/// 分类 Section — 每个分类的标题 + 铃声列表
+private struct SoundCategorySection: View {
+    let category: AppConstants.Sound.SoundCategory
+    let sounds: [AppConstants.Sound.SoundInfo]
+    let selectedSound: String
+    let onSelect: (String) -> Void
+    let onPlay: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: category.icon)
+                    .foregroundColor(tint)
+                Text(category.displayName)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+
+            ForEach(sounds) { sound in
+                SoundRow(
+                    name: sound.displayName,
+                    isSelected: selectedSound == sound.displayName,
+                    onPlay: { onPlay(sound.displayName) },
+                    onSelect: { onSelect(sound.displayName) }
+                )
+            }
+        }
     }
 
-    private var soundFontSize: CGFloat {
-        isPad ? 18 : 16
-    }
-
-    private var playIconSize: CGFloat {
-        isPad ? 30 : 26
-    }
-
-    private var soundRowPaddingVertical: CGFloat {
-        isPad ? 14 : 8
-    }
-
-    private var soundRowPaddingHorizontal: CGFloat {
-        isPad ? 16 : 12
+    private var tint: Color {
+        switch category.tint {
+        case "red":    return .red
+        case "green":  return .green
+        case "blue":   return .blue
+        case "orange": return .orange
+        case "purple": return .purple
+        default:       return .secondary
+        }
     }
 }

@@ -33,6 +33,7 @@ struct EmptyStateView: View {
                     .foregroundColor(.white)
                     .cornerRadius(AppConstants.Layout.largeCardCornerRadius)
             }
+            .accessibilityIdentifier("addAlarmEmptyButton")
             .padding(.horizontal, 40)
 
             Spacer()
