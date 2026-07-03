@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AlarmRingView: View {
     @ObservedObject var viewModel: AlarmViewModel
+    @ObservedObject private var volumeManager = VolumeManager.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var pulseScale: CGFloat = 1.0
     @State private var currentTime = Date()
@@ -11,7 +13,7 @@ struct AlarmRingView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.accentColor.opacity(0.8), Color.purple.opacity(0.6)],
+                colors: [themeManager.accentColor.opacity(0.9), themeManager.accentColor.opacity(0.6)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -36,6 +38,13 @@ struct AlarmRingView: View {
                             .font(.system(size: volumeIconSize, weight: .semibold))
                     }
                     .foregroundColor(.white.opacity(0.8))
+
+                    // F2-5 新增：显示系统音量已被临时调高的提示
+                    if volumeManager.isAlarmActive {
+                        Text("System volume boosted for alarm")
+                            .font(.system(size: isPad ? 13 : 11))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
                 }
 
                 ZStack {
@@ -62,7 +71,7 @@ struct AlarmRingView: View {
                             viewModel.snoozeRingingAlarm()
                             HapticService.shared.medium()
                         } label: {
-                            Text("Snooze")
+                            Text("Snooze for \(viewModel.ringingAlarm?.snoozeDuration ?? 5) min")
                                 .font(.system(size: buttonFontSize, weight: .semibold))
                                 .frame(maxWidth: buttonMaxWidth)
                                 .padding(.vertical, buttonPaddingVertical)

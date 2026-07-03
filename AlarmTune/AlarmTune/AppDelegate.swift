@@ -14,6 +14,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 print("Notification permission not granted")
             }
         }
+
         return true
     }
 

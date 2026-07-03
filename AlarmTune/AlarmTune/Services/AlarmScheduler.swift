@@ -28,7 +28,7 @@ class AlarmScheduler: NSObject {
         guard alarm.isEnabled else { return }
 
         let content = createNotificationContent(for: alarm)
-        let repeatDays = alarm.repeatDays as? [Int] ?? []
+        let repeatDays = alarm.repeatDays ?? []
 
         if repeatDays.isEmpty {
             scheduleOneTimeAlarm(alarm: alarm, content: content)
@@ -41,7 +41,10 @@ class AlarmScheduler: NSObject {
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = alarm.wrappedLabel
-        content.sound = nil
+        // F2-1 修复：设置兜底系统声音，确保APP被杀后台时仍能听到通知
+        // 当APP在前台时，willPresent 回调启动 AVAudioPlayer 自定义音量播放，
+        // completionHandler 中不传 .sound 避免双重播放
+        content.sound = .default
         content.categoryIdentifier = "ALARM_CATEGORY"
         content.userInfo = [
             "alarmId": alarm.wrappedId,
@@ -104,7 +107,8 @@ class AlarmScheduler: NSObject {
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = "\(alarm.wrappedLabel) (Snooze)"
-        content.sound = nil
+        // F2-1 修复：贪睡通知也需要兜底声音
+        content.sound = .default
         content.categoryIdentifier = "ALARM_CATEGORY"
         content.userInfo = [
             "alarmId": alarm.wrappedId,
@@ -139,7 +143,7 @@ class AlarmScheduler: NSObject {
     func cancelAlarm(_ alarm: AlarmItem) {
         var identifiers = [alarm.wrappedId]
 
-        if let repeatDays = alarm.repeatDays as? [Int] {
+        if let repeatDays = alarm.repeatDays, !repeatDays.isEmpty {
             for day in repeatDays {
                 identifiers.append("\(alarm.wrappedId)-day\(day)")
             }
@@ -188,7 +192,9 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
     ) {
         let userInfo = notification.request.content.userInfo
         handleAlarmNotification(userInfo: userInfo)
-        completionHandler([.banner, .sound, .badge])
+        // F2-1 修复：APP在前台时，AVAudioPlayer 已在 handleAlarmNotification 中启动，
+        // 不传 .sound 避免系统通知声音与 AVAudioPlayer 同时播放
+        completionHandler([.banner, .badge])
     }
 
     func userNotificationCenter(

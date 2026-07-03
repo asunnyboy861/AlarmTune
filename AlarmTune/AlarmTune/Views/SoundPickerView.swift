@@ -30,9 +30,9 @@ struct SoundPickerView: View {
 
                         Spacer()
 
-                        Image(systemName: "play.circle")
+                        Image(systemName: "play.circle.fill")
                             .font(.system(size: playIconSize))
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.accentColor.opacity(0.7))
                     }
                     .padding(.vertical, soundRowPaddingVertical)
                     .padding(.horizontal, soundRowPaddingHorizontal)
@@ -40,6 +40,7 @@ struct SoundPickerView: View {
                         RoundedRectangle(cornerRadius: AppConstants.Layout.largeCardCornerRadius)
                             .fill(selectedSound == sound ? Color.accentColor.opacity(0.1) : Color.clear)
                     )
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -72,7 +73,7 @@ struct SoundPickerView: View {
     }
 
     private var playIconSize: CGFloat {
-        isPad ? 26 : 22
+        isPad ? 30 : 26
     }
 
     private var soundRowPaddingVertical: CGFloat {

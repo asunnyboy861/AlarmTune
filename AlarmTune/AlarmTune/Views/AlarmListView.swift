@@ -5,6 +5,8 @@ struct AlarmListView: View {
     @State private var showingAddAlarm = false
     @State private var editingAlarm: AlarmItem?
     @State private var showingSettings = false
+    @State private var alarmToDelete: AlarmItem?
+    @State private var showDeleteConfirmation = false
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -57,6 +59,14 @@ struct AlarmListView: View {
             .fullScreenCover(isPresented: $viewModel.isRinging) {
                 AlarmRingView(viewModel: viewModel)
             }
+            .alert("Delete Alarm?", isPresented: $showDeleteConfirmation, presenting: alarmToDelete) { alarm in
+                Button("Delete", role: .destructive) {
+                    viewModel.deleteAlarm(alarm)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { alarm in
+                Text("\"\(alarm.wrappedLabel)\" will be permanently deleted.")
+            }
         }
     }
 
@@ -106,9 +116,26 @@ struct AlarmListView: View {
                                 editingAlarm = alarm
                                 HapticService.shared.light()
                             }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    alarmToDelete = alarm
+                                    showDeleteConfirmation = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    editingAlarm = alarm
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.accentColor)
+                            }
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    viewModel.deleteAlarm(alarm)
+                                    alarmToDelete = alarm
+                                    showDeleteConfirmation = true
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }

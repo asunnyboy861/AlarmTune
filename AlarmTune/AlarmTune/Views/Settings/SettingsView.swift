@@ -9,11 +9,16 @@ struct SettingsView: View {
     @State private var showTerms = false
     @State private var showSupport = false
     @State private var isTestPlaying = false
+    // F2-3 修复：使用 @ObservedObject 绑定共享单例
+    @ObservedObject private var volumeMonitor = VolumeMonitor.shared
+    @ObservedObject private var audioService = AudioService.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
         NavigationStack {
             Form {
                 appSection
+                themeSection
                 testAlarmSection
                 supportSection
                 legalSection
@@ -40,6 +45,11 @@ struct SettingsView: View {
             .sheet(isPresented: $showSupport) {
                 SafariView(url: URL(string: AppConstants.supportURL)!)
             }
+            .onChange(of: audioService.isPlaying) {
+                if isTestPlaying && !audioService.isPlaying {
+                    isTestPlaying = false
+                }
+            }
         }
     }
 
@@ -60,11 +70,63 @@ struct SettingsView: View {
 
                 Spacer()
 
-                Text("v1.0")
-                    .font(.system(size: versionSize))
-                    .foregroundColor(.secondary)
+                VStack(alignment: .trailing, spacing: 2) {
+                    // F2-3 修复：显示系统音量状态
+                    HStack(spacing: 4) {
+                        Image(systemName: volumeMonitor.volumeLevelIcon)
+                            .font(.system(size: 10))
+                            .foregroundColor(volumeColor(from: volumeMonitor.volumeLevelColor))
+                        Text("\(Int(volumeMonitor.systemVolume * 100))%")
+                            .font(.system(size: isPad ? 12 : 10))
+                            .foregroundColor(.secondary)
+                    }
+                    Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+                        .font(.system(size: versionSize))
+                        .foregroundColor(.secondary)
+                }
             }
             .padding(.vertical, isPad ? 12 : 4)
+        }
+    }
+
+    private var themeSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(ThemeManager.allThemes) { theme in
+                    Button {
+                        themeManager.currentTheme = theme
+                        HapticService.shared.light()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(theme.color)
+                                .frame(width: 28, height: 28)
+                                .overlay(
+                                    Image(systemName: theme.icon)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.white)
+                                )
+
+                            Text(theme.displayName)
+                                .font(.system(size: 16))
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            if themeManager.currentTheme == theme {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(theme.color)
+                                    .font(.system(size: 20))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Theme Color")
         }
     }
 
@@ -151,14 +213,6 @@ struct SettingsView: View {
             } label: {
                 Label("Contact Support", systemImage: "envelope.fill")
             }
-
-            Button {
-                if let url = URL(string: "mailto:\(AppConstants.contactEmail)") {
-                    UIApplication.shared.open(url)
-                }
-            } label: {
-                Label("Email Us", systemImage: "paperplane.fill")
-            }
         } header: {
             Text("Support")
         }
@@ -219,6 +273,17 @@ struct SettingsView: View {
 
     private var versionSize: CGFloat {
         isPad ? 16 : 13
+    }
+
+    // F2-3 修复：将颜色字符串转为 Color（与 AlarmItem.AlarmCategory 风格一致）
+    private func volumeColor(from colorName: String) -> Color {
+        switch colorName {
+        case "red": return .red
+        case "orange": return .orange
+        case "green": return .green
+        case "blue": return .blue
+        default: return .secondary
+        }
     }
 }
 

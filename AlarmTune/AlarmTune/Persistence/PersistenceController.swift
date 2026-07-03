@@ -73,7 +73,9 @@ class PersistenceController {
             let attr = NSAttributeDescription()
             attr.name = name
             attr.attributeType = type
-            attr.isOptional = (defaultValue != nil)
+            // id and createdAt have no default value but are optional in the model
+            let optionalAttributes: Set<String> = ["id", "createdAt", "category", "repeatDays"]
+            attr.isOptional = optionalAttributes.contains(name) || defaultValue != nil
             if let defaultValue = defaultValue {
                 attr.defaultValue = defaultValue
             }

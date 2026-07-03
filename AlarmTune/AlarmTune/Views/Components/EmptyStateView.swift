@@ -18,7 +18,7 @@ struct EmptyStateView: View {
                 Text("No Alarms Yet")
                     .font(.system(size: titleSize, weight: .semibold))
 
-                Text("Add your first alarm with custom volume")
+                Text("Wake up your way — set your own volume for each alarm")
                     .font(.system(size: subtitleSize))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

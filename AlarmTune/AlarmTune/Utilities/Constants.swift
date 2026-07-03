@@ -25,6 +25,10 @@ enum AppConstants {
         static let minVolume: Float = 0.0
         static let maxVolume: Float = 1.0
         static let previewThrottleInterval: TimeInterval = 0.3
+        // v2.0 新增：Fade-In 安全起始音量下限（F2-4）
+        static let fadeInMinStartVolume: Float = 0.05
+        // v2.0 新增：可听阈值，系统音量×闹钟音量低于此值时预警（F2-3）
+        static let audibleThreshold: Float = 0.10
     }
 
     enum DayPicker {
@@ -56,6 +60,10 @@ enum AppConstants {
             "Other"
         ]
         static let defaultSubject = "Other"
+    }
+
+    enum Theme {
+        static let storageKey = "appTheme"
     }
 
     enum Layout {

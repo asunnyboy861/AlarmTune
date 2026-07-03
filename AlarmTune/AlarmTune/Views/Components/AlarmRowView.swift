@@ -107,7 +107,7 @@ struct AlarmRowView: View {
 
     private var repeatDaysIndicator: some View {
         Group {
-            if let days = alarm.repeatDays as? [Int], !days.isEmpty {
+            if let days = alarm.repeatDays, !days.isEmpty {
                 HStack(spacing: 2) {
                     ForEach(0..<7, id: \.self) { index in
                         Text(AppConstants.DayPicker.daySymbols[index])

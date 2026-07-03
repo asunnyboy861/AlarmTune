@@ -37,7 +37,7 @@ struct AlarmEditView: View {
             _isSnoozeEnabled = State(initialValue: alarm.isSnoozeEnabled)
             _snoozeDuration = State(initialValue: Int(alarm.snoozeDuration))
             _category = State(initialValue: alarm.wrappedCategory)
-            _repeatDays = State(initialValue: alarm.repeatDays as? [Int] ?? [])
+            _repeatDays = State(initialValue: alarm.repeatDays ?? [])
         }
     }
 
@@ -236,6 +236,8 @@ struct AlarmEditView: View {
                 isFadeIn: isFadeIn,
                 fadeInDuration: fadeInDuration,
                 isVibrate: isVibrate,
+                isSnoozeEnabled: isSnoozeEnabled,
+                snoozeDuration: snoozeDuration,
                 category: category.isEmpty ? nil : category,
                 repeatDays: repeatDays.isEmpty ? nil : repeatDays
             )

@@ -27,7 +27,7 @@ class AlarmViewModel: ObservableObject {
         }
     }
 
-    func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, category: String?, repeatDays: [Int]? = nil) -> AlarmItem {
+    func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, isSnoozeEnabled: Bool = true, snoozeDuration: Int = AppConstants.Alarm.defaultSnoozeMinutes, category: String?, repeatDays: [Int]? = nil) -> AlarmItem {
         let alarm = AlarmItem.create(in: context)
         alarm.hour = Int16(hour)
         alarm.minute = Int16(minute)
@@ -37,6 +37,8 @@ class AlarmViewModel: ObservableObject {
         alarm.isFadeIn = isFadeIn
         alarm.fadeInDuration = fadeInDuration
         alarm.isVibrate = isVibrate
+        alarm.isSnoozeEnabled = isSnoozeEnabled
+        alarm.snoozeDuration = Int16(snoozeDuration)
         alarm.category = category
         alarm.repeatDays = repeatDays
 
@@ -144,6 +146,13 @@ class AlarmViewModel: ObservableObject {
             name: .alarmDidStop,
             object: nil
         )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAlarmSnoozed),
+            name: .alarmDidSnooze,
+            object: nil
+        )
     }
 
     @objc private func handleAlarmFired(_ notification: Notification) {
@@ -158,6 +167,13 @@ class AlarmViewModel: ObservableObject {
     }
 
     @objc private func handleAlarmStopped() {
+        DispatchQueue.main.async {
+            self.isRinging = false
+            self.ringingAlarm = nil
+        }
+    }
+
+    @objc private func handleAlarmSnoozed() {
         DispatchQueue.main.async {
             self.isRinging = false
             self.ringingAlarm = nil

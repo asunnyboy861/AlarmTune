@@ -41,13 +41,31 @@ public class AlarmItem: NSManagedObject, Identifiable {
 
     var nextFireDate: Date? {
         let now = Date()
-        let todayFire = fireDate
+        let calendar = Calendar.current
 
+        if let days = repeatDays, !days.isEmpty {
+            var nearestDate: Date?
+            for day in days {
+                var components = DateComponents()
+                components.hour = Int(hour)
+                components.minute = Int(minute)
+                // repeatDays uses 0=Sun...6=Sat, Calendar weekday uses 1=Sun...7=Sat
+                components.weekday = day + 1
+
+                if let nextDate = calendar.nextDate(after: now, matching: components, matchingPolicy: .nextTime) {
+                    if nearestDate == nil || nextDate < nearestDate! {
+                        nearestDate = nextDate
+                    }
+                }
+            }
+            return nearestDate
+        }
+
+        let todayFire = fireDate
         if todayFire > now {
             return todayFire
         }
-
-        return Calendar.current.date(byAdding: .day, value: 1, to: todayFire)
+        return calendar.date(byAdding: .day, value: 1, to: todayFire)
     }
 
     var formattedTime: String {

@@ -6,6 +6,8 @@ struct VolumeSliderView: View {
     var onPreview: ((Float) -> Void)?
 
     @State private var lastPreviewTime: Date = .distantPast
+    // F2-3 修复：使用 @ObservedObject 绑定共享单例（非 @StateObject）
+    @ObservedObject private var volumeMonitor = VolumeMonitor.shared
 
     private let presets: [(name: String, icon: String, value: Float)] = [
         ("Whisper", "speaker.fill", 0.15),
@@ -55,6 +57,7 @@ struct VolumeSliderView: View {
                     ForEach(presets, id: \.name) { preset in
                         Button {
                             volume = preset.value
+                            lastPreviewTime = Date()
                             onPreview?(preset.value)
                         } label: {
                             VStack(spacing: presetVSpacing) {
@@ -92,6 +95,19 @@ struct VolumeSliderView: View {
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(.plain)
+            }
+
+            // F2-3 修复：系统音量过低预警
+            if let warning = volumeMonitor.warningMessage(for: volume) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: isPad ? 13 : 11))
+                        .foregroundColor(.orange)
+                    Text(warning)
+                        .font(.system(size: isPad ? 13 : 11))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
             }
         }
     }
