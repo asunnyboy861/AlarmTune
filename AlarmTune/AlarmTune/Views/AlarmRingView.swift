@@ -15,9 +15,12 @@ struct AlarmRingView: View {
         ZStack {
             // M8.2：视频背景分支（如果有视频背景则播放视频，否则使用渐变背景）
             // V3：传入 videoVolume，支持视频独立音量控制
+            // W1/W3：传入 audioSource，决定是视频原声还是闹钟铃声
             if let alarm = viewModel.ringingAlarm,
                let videoName = alarm.videoBackgroundName, !videoName.isEmpty {
-                VideoBackgroundView(videoName: videoName, videoVolume: alarm.videoVolume)
+                VideoBackgroundView(videoName: videoName,
+                                    videoVolume: alarm.videoVolume,
+                                    audioSource: alarm.wrappedAudioSource)
                 // 半透明遮罩，确保 UI 文字可读
                 Color.black.opacity(0.3)
                     .ignoresSafeArea()

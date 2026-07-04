@@ -3,35 +3,46 @@ import AVKit
 import UIKit
 
 /// 管理内置视频背景资源（M8.2）
-/// 单例模式，与 VideoImportService 风格一致
 ///
 /// 内置视频存放在 Bundle/Videos/ 目录，文件格式 .mp4
-/// 视频应无声或可静音（App 会强制静音播放）
+/// W2：视频带原始音轨，支持"视频原声"模式
 final class VideoBackgroundService: ObservableObject {
     static let shared = VideoBackgroundService()
 
     /// 内置视频背景列表
-    /// V1：改为 var 以支持懒加载缩略图
-    /// MVP 阶段先放入 Bundle；后续可迁移到 CDN 按需下载
+    /// W2：替换为带音轨的高质量视频，按分类组织
     @Published var builtInVideos: [VideoBackgroundInfo] = [
-        VideoBackgroundInfo(id: "sunrise", title: "Sunrise", videoName: "sunrise"),
-        VideoBackgroundInfo(id: "coffee", title: "Morning Coffee", videoName: "coffee"),
-        VideoBackgroundInfo(id: "ocean", title: "Ocean Waves", videoName: "ocean"),
-        VideoBackgroundInfo(id: "forest", title: "Forest", videoName: "forest")
+        // Storm（戏剧性最高 — 强制唤醒）
+        VideoBackgroundInfo(id: "thunder", title: "Thunder Lightning", videoName: "thunder",
+                           category: .storm, hasAudioTrack: true),
+        VideoBackgroundInfo(id: "oceancrash", title: "Ocean Crash", videoName: "oceancrash",
+                           category: .storm, hasAudioTrack: true),
+        // Nature（自然力量 — 沉浸唤醒）
+        VideoBackgroundInfo(id: "waterfall", title: "Waterfall Rush", videoName: "waterfall",
+                           category: .nature, hasAudioTrack: true),
+        VideoBackgroundInfo(id: "forest", title: "Forest Morning", videoName: "forest",
+                           category: .nature, hasAudioTrack: true),
+        // City（都市节奏 — 脉冲唤醒）
+        VideoBackgroundInfo(id: "citylights", title: "City Lights", videoName: "citylights",
+                           category: .city, hasAudioTrack: true),
+        VideoBackgroundInfo(id: "rainwindow", title: "Rain Window", videoName: "rainwindow",
+                           category: .city, hasAudioTrack: true),
+        // Cozy（治愈温馨 — 渐进唤醒）
+        VideoBackgroundInfo(id: "coffeebrew", title: "Coffee Brew", videoName: "coffeebrew",
+                           category: .cozy, hasAudioTrack: true),
+        VideoBackgroundInfo(id: "fireplace", title: "Fireplace Crackle", videoName: "fireplace",
+                           category: .cozy, hasAudioTrack: true),
     ]
 
     private init() {}
 
     /// 获取内置视频文件 URL
-    /// - Parameter name: 视频文件名（不含扩展名）
-    /// - Returns: 视频 URL，找不到返回 nil
     func urlForVideo(_ name: String) -> URL? {
         Bundle.main.url(forResource: name, withExtension: "mp4", subdirectory: "Videos")
             ?? Bundle.main.url(forResource: name, withExtension: "mp4")
     }
 
     /// 为所有内置视频生成缩略图（从 AVAssetImageGenerator 提取首帧）
-    /// V1 新增：与 VideoImportService 共享缩略图尺寸 320x180（16:9）
     @MainActor
     func generateThumbnails() {
         for index in builtInVideos.indices {
@@ -51,8 +62,7 @@ final class VideoBackgroundService: ObservableObject {
         }
     }
 
-    /// 从视频 URL 生成缩略图 Data（与 VideoImportService 共享逻辑和尺寸）
-    /// V1：统一缩略图尺寸为 320x180（16:9），与视频原生比例一致
+    /// 从视频 URL 生成缩略图 Data（统一 320x180 16:9）
     static func generateThumbnailData(from url: URL, at time: CMTime = .zero) async -> Data? {
         let asset = AVURLAsset(url: url)
         let generator = AVAssetImageGenerator(asset: asset)
@@ -69,10 +79,42 @@ final class VideoBackgroundService: ObservableObject {
     }
 }
 
+/// 视频背景分类（W4 新增）
+/// 与 SoundCategory 风格对齐：rawValue 为显示名、icon 为 SF Symbol
+enum VideoCategory: String, CaseIterable, Identifiable {
+    case storm = "Storm"      // 暴风雨（戏剧性最高）
+    case nature = "Nature"    // 自然
+    case city = "City"        // 城市
+    case cozy = "Cozy"        // 温馨
+
+    var id: String { rawValue }
+    var displayName: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .storm:   return "cloud.bolt.fill"
+        case .nature:  return "leaf.fill"
+        case .city:    return "building.2.fill"
+        case .cozy:    return "flame.fill"
+        }
+    }
+
+    var tint: String {
+        switch self {
+        case .storm:   return "purple"
+        case .nature:  return "green"
+        case .city:    return "blue"
+        case .cozy:    return "orange"
+        }
+    }
+}
+
 /// 内置视频背景信息
 struct VideoBackgroundInfo: Identifiable, Hashable {
-    let id: String          // 唯一标识，用于 videoBuiltIn:{id}
-    let title: String       // 显示名
-    let videoName: String   // Bundle 中的文件名（不含扩展名）
-    var thumbnailData: Data?  // V1 新增：懒加载缩略图
+    let id: String              // 唯一标识，用于 videoBuiltIn:{id}
+    let title: String           // 显示名
+    let videoName: String       // Bundle 中的文件名（不含扩展名）
+    var thumbnailData: Data?    // 懒加载缩略图
+    let category: VideoCategory // W4：视频分类
+    let hasAudioTrack: Bool     // W4：是否有音轨
 }

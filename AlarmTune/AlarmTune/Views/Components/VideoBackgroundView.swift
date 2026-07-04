@@ -4,10 +4,12 @@ import AVKit
 /// 响铃界面的视频背景播放组件（M8.2）
 ///
 /// V3：支持 videoVolume 参数，0 = 静音，>0 = 按音量播放视频原声
+/// W1/W3：支持 audioSource 参数，videoSound 模式下播放视频原声，alarmSound 模式下静音
 /// 使用 AVPlayerLooper 实现无缝循环
 struct VideoBackgroundView: View {
     let videoName: String  // 含前缀的完整标识
     let videoVolume: Float  // V3 新增：视频音量 0.0...1.0
+    var audioSource: AppConstants.AudioSource = .alarmSound  // W1 新增：默认闹钟铃声模式
 
     @State private var player: AVQueuePlayer?
     @State private var looper: AVPlayerLooper?
@@ -35,12 +37,17 @@ struct VideoBackgroundView: View {
         let item = AVPlayerItem(url: url)
         let queuePlayer = AVQueuePlayer(playerItem: item)
 
-        // V3：根据 videoVolume 决定是否静音
-        if videoVolume <= 0 {
-            queuePlayer.isMuted = true
-        } else {
+        // W1/W3：根据 audioSource 决定音频播放策略
+        // - alarmSound 模式：视频静音（闹钟铃声由 AudioService 播放）
+        // - videoSound 模式：按 videoVolume 播放视频原声（闹钟铃声不播放）
+        if audioSource == .videoSound {
+            // 视频原声模式：使用 videoVolume 控制音量（默认 0.7 保证有声音）
+            let effectiveVolume = videoVolume > 0 ? videoVolume : 0.7
             queuePlayer.isMuted = false
-            queuePlayer.volume = videoVolume
+            queuePlayer.volume = effectiveVolume
+        } else {
+            // 闹钟铃声模式：视频静音
+            queuePlayer.isMuted = true
         }
 
         // AVPlayerLooper 实现无缝循环

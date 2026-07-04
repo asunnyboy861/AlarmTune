@@ -60,6 +60,7 @@ class AlarmScheduler: NSObject {
             "volume": alarm.volume,
             "soundName": effectiveSoundName,
             "videoBackgroundName": videoBackgroundName,
+            "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,  // W1
             "isFadeIn": alarm.isFadeIn,
             "fadeInDuration": alarm.fadeInDuration,
             "isVibrate": alarm.isVibrate,
@@ -184,6 +185,7 @@ class AlarmScheduler: NSObject {
             "volume": alarm.volume,
             "soundName": alarm.wrappedSoundName,
             "videoBackgroundName": alarm.videoBackgroundName ?? "",
+            "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,  // W1
             "isFadeIn": false,
             "fadeInDuration": 0.0,
             "isVibrate": alarm.isVibrate,
@@ -326,12 +328,16 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         let isFadeIn = userInfo["isFadeIn"] as? Bool ?? false
         let fadeInDuration = userInfo["fadeInDuration"] as? Double ?? 5.0
 
-        AudioService.shared.playAlarm(
-            soundName: soundName,
-            volume: volume,
-            fadeIn: isFadeIn,
-            fadeInDuration: fadeInDuration
-        )
+        // W1/W3：视频原声模式下不播放闹钟铃声，由 VideoBackgroundView 播放视频自带音轨
+        let audioSource = userInfo["audioSource"] as? String ?? AppConstants.Alarm.defaultAudioSource
+        if audioSource != AppConstants.AudioSource.videoSound.rawValue {
+            AudioService.shared.playAlarm(
+                soundName: soundName,
+                volume: volume,
+                fadeIn: isFadeIn,
+                fadeInDuration: fadeInDuration
+            )
+        }
 
         if let isVibrate = userInfo["isVibrate"] as? Bool, isVibrate {
             vibrate()

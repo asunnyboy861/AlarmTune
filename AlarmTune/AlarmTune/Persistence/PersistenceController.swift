@@ -66,7 +66,8 @@ class PersistenceController {
             ("repeatDays", .transformableAttributeType, nil),
             ("createdAt", .dateAttributeType, nil),
             ("videoBackgroundName", .stringAttributeType, nil),  // M8.2 新增：视频背景标识
-            ("videoVolume", .floatAttributeType, 0.0)  // V3 新增：视频音量，默认 0（静音，向后兼容）
+            ("videoVolume", .floatAttributeType, 0.0),  // V3 新增：视频音量，默认 0（静音，向后兼容）
+            ("audioSource", .stringAttributeType, "alarmSound")  // W1 新增：音频来源，默认闹钟铃声（向后兼容）
         ]
 
         var propertyDescriptions: [NSPropertyDescription] = []

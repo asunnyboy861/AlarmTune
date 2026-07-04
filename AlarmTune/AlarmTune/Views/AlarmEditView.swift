@@ -24,6 +24,7 @@ struct AlarmEditView: View {
     @State private var showVideoPicker = false  // M8.2 新增
     @State private var videoVolume: Float = AppConstants.Alarm.defaultVideoVolume  // V3 新增
     @State private var showVideoPreview = false  // V4 新增
+    @State private var audioSource: AppConstants.AudioSource = .alarmSound  // W1 新增
 
     init(viewModel: AlarmViewModel, alarm: AlarmItem? = nil) {
         self.viewModel = viewModel
@@ -44,6 +45,7 @@ struct AlarmEditView: View {
             _repeatDays = State(initialValue: alarm.repeatDays ?? [])
             _videoBackgroundName = State(initialValue: alarm.videoBackgroundName)  // M8.2
             _videoVolume = State(initialValue: alarm.videoVolume)  // V3
+            _audioSource = State(initialValue: alarm.wrappedAudioSource)  // W1
         }
     }
 
@@ -90,7 +92,8 @@ struct AlarmEditView: View {
                         videoName: videoName,
                         videoVolume: videoVolume,
                         soundName: soundName,
-                        soundVolume: volume
+                        soundVolume: volume,
+                        audioSource: audioSource
                     )
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.visible)
@@ -228,12 +231,31 @@ struct AlarmEditView: View {
             if videoBackgroundName != nil {
                 VolumeSliderView(volume: $videoVolume)
             }
+
+            // W1：音频来源选择器（仅在选择视频后显示）
+            // alarmSound = 闹钟铃声（视频静音）
+            // videoSound = 视频原声（不播放闹钟铃声）
+            if videoBackgroundName != nil {
+                Picker("Audio Source", selection: $audioSource) {
+                    ForEach(AppConstants.AudioSource.allCases) { source in
+                        Label(source.displayName, systemImage: source.icon)
+                            .tag(source)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("audioSourcePicker")
+            }
         } header: {
             Text("Video Background")
         } footer: {
             if videoBackgroundName != nil {
-                Text("Adjust video background volume. Set to 0% to keep video silent.")
-                    .font(.caption2)
+                if audioSource == .videoSound {
+                    Text("Video plays with its own sound. Alarm sound is muted.")
+                        .font(.caption2)
+                } else {
+                    Text("Adjust video background volume. Set to 0% to keep video silent.")
+                        .font(.caption2)
+                }
             } else {
                 Text("Optional. Video plays silently in background when alarm rings.")
                     .font(.caption2)
@@ -340,6 +362,7 @@ struct AlarmEditView: View {
             existingAlarm.repeatDays = repeatDays.isEmpty ? nil : repeatDays
             existingAlarm.videoBackgroundName = videoBackgroundName  // M8.2
             existingAlarm.videoVolume = videoVolume  // V3
+            existingAlarm.audioSource = audioSource.rawValue  // W1
             viewModel.updateAlarm(existingAlarm)
         } else {
             _ = viewModel.addAlarm(
@@ -356,7 +379,8 @@ struct AlarmEditView: View {
                 category: category.isEmpty ? nil : category,
                 repeatDays: repeatDays.isEmpty ? nil : repeatDays,
                 videoBackgroundName: videoBackgroundName,  // M8.2
-                videoVolume: videoVolume  // V3
+                videoVolume: videoVolume,  // V3
+                audioSource: audioSource.rawValue  // W1
             )
         }
 

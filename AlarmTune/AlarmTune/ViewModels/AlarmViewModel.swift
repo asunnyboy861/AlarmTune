@@ -33,7 +33,7 @@ class AlarmViewModel: ObservableObject {
         updateNextAlarmText()
     }
 
-    func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, isSnoozeEnabled: Bool = true, snoozeDuration: Int = AppConstants.Alarm.defaultSnoozeMinutes, category: String?, repeatDays: [Int]? = nil, videoBackgroundName: String? = nil, videoVolume: Float = AppConstants.Alarm.defaultVideoVolume) -> AlarmItem {
+    func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, isSnoozeEnabled: Bool = true, snoozeDuration: Int = AppConstants.Alarm.defaultSnoozeMinutes, category: String?, repeatDays: [Int]? = nil, videoBackgroundName: String? = nil, videoVolume: Float = AppConstants.Alarm.defaultVideoVolume, audioSource: String = AppConstants.Alarm.defaultAudioSource) -> AlarmItem {
         let alarm = AlarmItem.create(in: context)
         alarm.hour = Int16(hour)
         alarm.minute = Int16(minute)
@@ -49,6 +49,7 @@ class AlarmViewModel: ObservableObject {
         alarm.repeatDays = repeatDays
         alarm.videoBackgroundName = videoBackgroundName  // M8.2
         alarm.videoVolume = videoVolume  // V3
+        alarm.audioSource = audioSource  // W1
 
         PersistenceController.shared.saveContext()
         AlarmScheduler.shared.scheduleAlarm(alarm)

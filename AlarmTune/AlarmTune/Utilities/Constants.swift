@@ -21,6 +21,33 @@ enum AppConstants {
         static let maxSnoozeDuration: Int = 30
         // V3 新增：视频背景音量默认值（0 = 静音，向后兼容）
         static let defaultVideoVolume: Float = 0.0
+
+        // W1 新增：默认音频来源（闹钟铃声模式，向后兼容）
+        static let defaultAudioSource: String = "alarmSound"
+    }
+
+    /// W1 新增：视频闹钟音频来源枚举
+    /// alarmSound = 闹钟铃声库（视频静音）
+    /// videoSound = 视频原声（不播放闹钟铃声）
+    enum AudioSource: String, CaseIterable, Identifiable {
+        case alarmSound = "alarmSound"
+        case videoSound = "videoSound"
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .alarmSound: return "Alarm Sound"
+            case .videoSound: return "Video Sound"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .alarmSound: return "bell.fill"
+            case .videoSound: return "speaker.wave.2.fill"
+            }
+        }
     }
 
     enum Volume {

@@ -20,6 +20,7 @@ public class AlarmItem: NSManagedObject, Identifiable {
     @NSManaged public var createdAt: Date?
     @NSManaged public var videoBackgroundName: String?  // M8.2 新增：视频背景标识
     @NSManaged public var videoVolume: Float  // V3 新增：视频音量 0.0...1.0，默认 0（静音）
+    @NSManaged public var audioSource: String?  // W1 新增：音频来源 alarmSound/videoSound，默认 alarmSound
 
     var wrappedId: String {
         id ?? UUID().uuidString
@@ -35,6 +36,15 @@ public class AlarmItem: NSManagedObject, Identifiable {
 
     var wrappedCategory: String {
         category ?? ""
+    }
+
+    /// W1 新增：音频来源枚举访问器，向后兼容（nil → alarmSound）
+    var wrappedAudioSource: AppConstants.AudioSource {
+        guard let raw = audioSource,
+              let source = AppConstants.AudioSource(rawValue: raw) else {
+            return .alarmSound
+        }
+        return source
     }
 
     var fireDate: Date {
@@ -135,6 +145,7 @@ extension AlarmItem {
         alarm.repeatDays = nil
         alarm.createdAt = Date()
         alarm.videoVolume = AppConstants.Alarm.defaultVideoVolume  // V3
+        alarm.audioSource = AppConstants.Alarm.defaultAudioSource  // W1
         return alarm
     }
 }

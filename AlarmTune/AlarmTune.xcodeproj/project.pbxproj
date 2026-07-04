@@ -84,10 +84,14 @@
 		38A17166273B46E2AFD0BC98 /* VideoBackgroundPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */; };
 		1E928BEE68204E958E89F402 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94E959BC9EC94A798A1F27F6 /* PaywallView.swift */; };
 		59355E154EFD4AA686838DCA /* AIAlarmGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B340251099984810A008670C /* AIAlarmGeneratorView.swift */; };
-		EB2F57D6AAD94CB3ACFE96F1 /* sunrise.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9181 /* sunrise.mp4 */; };
-		7B55D57FC3074873A392C8F9 /* coffee.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = E536E59740524F04A2070902 /* coffee.mp4 */; };
-		3F496914AAAE4047AF605536 /* ocean.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = B58CA55925A949A39131B056 /* ocean.mp4 */; };
 		6C39B033BD974576AB36DA84 /* forest.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = A59817A33AD34DA68D8BB814 /* forest.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9701 /* thunder.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9101 /* thunder.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9702 /* oceancrash.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9102 /* oceancrash.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9703 /* waterfall.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9103 /* waterfall.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9704 /* citylights.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9104 /* citylights.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9705 /* rainwindow.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9105 /* rainwindow.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9706 /* coffeebrew.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9106 /* coffeebrew.mp4 */; };
+		EB2F57D6AAD94CB3ACFE9707 /* fireplace.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9107 /* fireplace.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -190,10 +194,14 @@
 		25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundPickerView.swift; sourceTree = "<group>"; };
 		94E959BC9EC94A798A1F27F6 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		B340251099984810A008670C /* AIAlarmGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAlarmGeneratorView.swift; sourceTree = "<group>"; };
-		C50A25314F1745DAA8DC9181 /* sunrise.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = sunrise.mp4; sourceTree = "<group>"; };
-		E536E59740524F04A2070902 /* coffee.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = coffee.mp4; sourceTree = "<group>"; };
-		B58CA55925A949A39131B056 /* ocean.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = ocean.mp4; sourceTree = "<group>"; };
 		A59817A33AD34DA68D8BB814 /* forest.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = forest.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9101 /* thunder.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = thunder.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9102 /* oceancrash.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = oceancrash.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9103 /* waterfall.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = waterfall.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9104 /* citylights.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = citylights.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9105 /* rainwindow.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = rainwindow.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9106 /* coffeebrew.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = coffeebrew.mp4; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9107 /* fireplace.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = fireplace.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -323,10 +331,14 @@
 		D3385C90B5E9461FB3BBAB1D /* Videos */ = {
 			isa = PBXGroup;
 			children = (
-				C50A25314F1745DAA8DC9181 /* sunrise.mp4 */,
-				E536E59740524F04A2070902 /* coffee.mp4 */,
-				B58CA55925A949A39131B056 /* ocean.mp4 */,
 				A59817A33AD34DA68D8BB814 /* forest.mp4 */,
+				C50A25314F1745DAA8DC9101 /* thunder.mp4 */,
+				C50A25314F1745DAA8DC9102 /* oceancrash.mp4 */,
+				C50A25314F1745DAA8DC9103 /* waterfall.mp4 */,
+				C50A25314F1745DAA8DC9104 /* citylights.mp4 */,
+				C50A25314F1745DAA8DC9105 /* rainwindow.mp4 */,
+				C50A25314F1745DAA8DC9106 /* coffeebrew.mp4 */,
+				C50A25314F1745DAA8DC9107 /* fireplace.mp4 */,
 			);
 			name = Videos;
 			path = AlarmTune/Videos;
@@ -557,10 +569,14 @@
 				0915C29CD8E211858AF6A169 /* ThunderRoll.caf in Resources */,
 				2826855CB357987F1C2A0158 /* WindChime.caf in Resources */,
 				05C43C8318279C7CB9287B2F /* ZenBowl.caf in Resources */,
-				EB2F57D6AAD94CB3ACFE96F1 /* sunrise.mp4 in Resources */,
-				7B55D57FC3074873A392C8F9 /* coffee.mp4 in Resources */,
-				3F496914AAAE4047AF605536 /* ocean.mp4 in Resources */,
 				6C39B033BD974576AB36DA84 /* forest.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9701 /* thunder.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9702 /* oceancrash.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9703 /* waterfall.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9704 /* citylights.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9705 /* rainwindow.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9706 /* coffeebrew.mp4 in Resources */,
+				EB2F57D6AAD94CB3ACFE9707 /* fireplace.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -10,6 +10,7 @@ struct AlarmPreviewView: View {
     let videoVolume: Float
     let soundName: String
     let soundVolume: Float
+    var audioSource: AppConstants.AudioSource = .alarmSound  // W1 新增
 
     @State private var player: AVQueuePlayer?
     @State private var looper: AVPlayerLooper?
@@ -88,18 +89,23 @@ struct AlarmPreviewView: View {
         if let url = resolveVideoURL() {
             let item = AVPlayerItem(url: url)
             let queuePlayer = AVQueuePlayer(playerItem: item)
-            if videoVolume <= 0 {
-                queuePlayer.isMuted = true
+            // W1/W3：根据 audioSource 决定是否播放视频原声
+            if audioSource == .videoSound {
+                let effectiveVolume = videoVolume > 0 ? videoVolume : 0.7
+                queuePlayer.isMuted = false
+                queuePlayer.volume = effectiveVolume
             } else {
-                queuePlayer.volume = videoVolume
+                queuePlayer.isMuted = true
             }
             looper = AVPlayerLooper(player: queuePlayer, templateItem: item)
             queuePlayer.play()
             player = queuePlayer
         }
 
-        // 2. 播放铃声
-        AudioService.shared.previewSound(soundName: soundName, volume: soundVolume)
+        // 2. 播放铃声（仅 alarmSound 模式）
+        if audioSource != .videoSound {
+            AudioService.shared.previewSound(soundName: soundName, volume: soundVolume)
+        }
     }
 
     private func stopAndDismiss() {
