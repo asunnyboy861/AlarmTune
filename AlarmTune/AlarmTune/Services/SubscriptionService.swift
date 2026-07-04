@@ -42,6 +42,9 @@ final class SubscriptionService: ObservableObject {
     /// 购买错误信息
     @Published var errorMessage: String?
 
+    /// 商品加载失败（Release 模式下 App Store Connect 未配置时为 true）
+    @Published private(set) var didFailToLoadProducts: Bool = false
+
     private var transactionListener: Task<Void, Never>?
 
     private init() {
@@ -73,9 +76,15 @@ final class SubscriptionService: ObservableObject {
             let storeProducts = try await Product.products(for: productIds)
             await MainActor.run {
                 self.products = storeProducts.sorted { $0.price < $1.price }
+                if storeProducts.isEmpty {
+                    self.didFailToLoadProducts = true
+                }
             }
         } catch {
             print("Failed to load products: \(error.localizedDescription)")
+            await MainActor.run {
+                self.didFailToLoadProducts = true
+            }
         }
     }
 

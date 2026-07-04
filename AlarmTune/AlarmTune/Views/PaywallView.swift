@@ -101,15 +101,33 @@ struct PaywallView: View {
                 placeholderProduct(.monthly)
                 placeholderProduct(.yearly)
                 #else
-                // Release 模式：商品加载中或 App Store Connect 未配置
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Loading subscription options...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                // Release 模式：商品加载失败或 App Store Connect 未配置
+                if subscriptionService.didFailToLoadProducts {
+                    VStack(spacing: 12) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                        Text("Subscriptions temporarily unavailable")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Button("Retry") {
+                            Task { await subscriptionService.loadProducts() }
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.accentColor)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                } else {
+                    VStack(spacing: 8) {
+                        ProgressView()
+                        Text("Loading subscription options...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
                 #endif
             } else {
                 ForEach(subscriptionService.products, id: \.id) { product in

@@ -48,11 +48,13 @@ struct VideoBackgroundPickerView: View {
                     VideoTrimmerView(
                         sourceURL: url,
                         onTrimmed: { trimmedURL in
-                            if let imported = VideoImportService.shared.importVideo(from: trimmedURL) {
-                                selectedVideo = imported.id
+                            Task {
+                                if let imported = await VideoImportService.shared.importVideoAsync(from: trimmedURL) {
+                                    selectedVideo = imported.id
+                                }
+                                VideoImportService.shared.refreshImportedVideos()
+                                pickedVideoURL = nil
                             }
-                            VideoImportService.shared.refreshImportedVideos()
-                            pickedVideoURL = nil
                         },
                         onCancel: {
                             pickedVideoURL = nil
