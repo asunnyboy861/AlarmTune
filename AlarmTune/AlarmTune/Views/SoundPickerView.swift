@@ -10,6 +10,7 @@ struct SoundPickerView: View {
     @State private var showMusicPicker = false
     @State private var showDocumentPicker = false
     @State private var showImportLimitAlert = false
+    @State private var showImportFailedAlert = false
     @State private var showPaywall = false
     @State private var showAIGenerator = false  // M8.3 新增
     @State private var cachedAppleMusicSongs: [CachedSong] = []
@@ -60,6 +61,8 @@ struct SoundPickerView: View {
                         selectedSound = soundId
                     } else if !SoundImportService.shared.canImportMore {
                         showImportLimitAlert = true
+                    } else {
+                        showImportFailedAlert = true
                     }
                 }
             }
@@ -68,6 +71,11 @@ struct SoundPickerView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Free users can import up to \(SoundImportService.freeImportLimit) custom sound. Upgrade to Premium for unlimited imports.")
+            }
+            .alert("Import Failed", isPresented: $showImportFailedAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Could not import this audio file. Please make sure it's a supported format.")
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()

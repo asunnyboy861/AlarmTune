@@ -103,7 +103,9 @@ final class AIGenerationService {
         let totalSamples = Int(durationSec * sampleRate)
 
         // 创建 AVAudioFile
-        let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: false)!
+        guard let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: sampleRate, channels: 1, interleaved: false) else {
+            throw NSError(domain: "AIGenerationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to create audio format"])
+        }
         let settings: [String: Any] = [
             AVFormatIDKey: kAudioFormatLinearPCM,
             AVSampleRateKey: sampleRate,
@@ -116,10 +118,13 @@ final class AIGenerationService {
         let audioFile = try AVAudioFile(forWriting: outputURL, settings: settings)
 
         // 生成音频缓冲区
-        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(totalSamples))!
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(totalSamples)),
+              let data = buffer.int16ChannelData else {
+            throw NSError(domain: "AIGenerationService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to allocate audio buffer"])
+        }
         buffer.frameLength = AVAudioFrameCount(totalSamples)
 
-        let data = buffer.int16ChannelData![0]
+        let channelData = data[0]
         let baseFreq = style.baseFrequency
         let waveform = style.waveform
 
@@ -151,7 +156,7 @@ final class AIGenerationService {
 
             // 应用包络并缩放到 16-bit 范围
             let sample = Int16(finalValue * envelope * 0.7 * Double(Int16.max))
-            data[i] = sample
+            channelData[i] = sample
         }
 
         try audioFile.write(from: buffer)

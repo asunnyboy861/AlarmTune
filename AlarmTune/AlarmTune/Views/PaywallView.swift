@@ -7,6 +7,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ObservedObject private var subscriptionService = SubscriptionService.shared
+    @State private var showError = false
 
     var body: some View {
         NavigationStack {
@@ -28,12 +29,15 @@ struct PaywallView: View {
                     Button("Close") { dismiss() }
                 }
             }
-            .alert("Purchase Error", isPresented: .constant(subscriptionService.errorMessage != nil)) {
+            .alert("Purchase Error", isPresented: $showError) {
                 Button("OK") {
                     subscriptionService.errorMessage = nil
                 }
             } message: {
                 Text(subscriptionService.errorMessage ?? "")
+            }
+            .onChange(of: subscriptionService.errorMessage) { _, newValue in
+                showError = newValue != nil
             }
         }
     }
