@@ -277,10 +277,24 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         switch response.actionIdentifier {
         case "STOP_ACTION":
             AudioService.shared.stopAlarm()
+            // P1 fix: 一次性闹钟从通知停止后自动禁用，与 Apple Clock App 行为一致
+            if let alarmId = userInfo["alarmId"] as? String {
+                let context = PersistenceController.shared.viewContext
+                let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+                fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
+                if let alarm = try? context.fetch(fetchRequest).first {
+                    let repeatDays = alarm.repeatDays ?? []
+                    if repeatDays.isEmpty {
+                        alarm.isEnabled = false
+                        try? context.save()
+                    }
+                }
+            }
             NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 
         case "SNOOZE_ACTION":
             AudioService.shared.fadeOutAndStop()
+            // P1 fix: 仅在 snooze 实际调度成功后才发通知，避免用户以为已 snooze 但无后续闹钟
             if let snoozeDuration = userInfo["snoozeDuration"] as? Int,
                let alarmId = userInfo["alarmId"] as? String {
                 let context = PersistenceController.shared.viewContext
@@ -288,9 +302,12 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
                 fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
                 if let alarm = try? context.fetch(fetchRequest).first {
                     AlarmScheduler.shared.scheduleSnooze(for: alarm, minutes: snoozeDuration)
+                    NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
                 }
+            } else {
+                // 无法获取 snooze 信息，仍发通知以关闭响铃界面
+                NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
             }
-            NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
 
         case UNNotificationDefaultActionIdentifier:
             handleAlarmNotification(userInfo: userInfo)

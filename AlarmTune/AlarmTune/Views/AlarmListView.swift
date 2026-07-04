@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct AlarmListView: View {
     @StateObject private var viewModel = AlarmViewModel()
@@ -72,6 +73,17 @@ struct AlarmListView: View {
                 Button("Cancel", role: .cancel) {}
             } message: { alarm in
                 Text("\"\(alarm.wrappedLabel)\" will be permanently deleted.")
+            }
+            // P1 fix: 通知权限被拒时提示用户
+            .alert("Notifications Disabled", isPresented: $showNotificationDenied) {
+                Button("Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("AlarmTune needs notification permission to play alarms. Please enable notifications in Settings.")
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -200,15 +212,38 @@ struct AlarmListView: View {
     }
 
     /// 首次点击添加闹钟时请求通知权限，已请求过则直接执行
+    /// P1 fix: 检查权限状态，被拒时提示用户
     private func requestNotificationPermissionIfNeeded(then action: @escaping () -> Void) {
         if hasRequestedNotificationPermission {
-            action()
+            // 已请求过，检查当前权限状态
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                DispatchQueue.main.async {
+                    if settings.authorizationStatus == .denied {
+                        showNotificationDeniedAlert()
+                    } else {
+                        action()
+                    }
+                }
+            }
             return
         }
 
         hasRequestedNotificationPermission = true
-        AlarmScheduler.shared.requestAuthorization { _ in
-            action()
+        AlarmScheduler.shared.requestAuthorization { granted in
+            DispatchQueue.main.async {
+                if granted {
+                    action()
+                } else {
+                    showNotificationDeniedAlert()
+                }
+            }
         }
+    }
+
+    /// P1 fix: 通知权限被拒时提示用户
+    @State private var showNotificationDenied: Bool = false
+
+    private func showNotificationDeniedAlert() {
+        showNotificationDenied = true
     }
 }

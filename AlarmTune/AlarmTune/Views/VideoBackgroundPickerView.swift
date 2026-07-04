@@ -56,10 +56,10 @@ struct VideoBackgroundPickerView: View {
                 }
             }
             .sheet(isPresented: $showDocumentPicker) {
-                DocumentPickerWrapper { url in
+                DocumentPickerWrapper(onPick: { url in
                     pickedVideoURL = url
                     showTrimmer = true
-                }
+                }, contentTypes: [UTType.video])
             }
             .sheet(isPresented: $showTrimmer) {
                 if let url = pickedVideoURL {
@@ -185,7 +185,13 @@ struct VideoBackgroundPickerView: View {
                     onPreview: {
                         togglePreview(videoId: video.id)
                     },
-                    onDelete: { _ = importService.deleteVideo(video) }
+                    onDelete: {
+                        _ = importService.deleteVideo(video)
+                        // P1 fix: 删除当前选中的视频时清除选择，避免悬空引用
+                        if selectedVideo == video.id {
+                            selectedVideo = nil
+                        }
+                    }
                 )
             }
 

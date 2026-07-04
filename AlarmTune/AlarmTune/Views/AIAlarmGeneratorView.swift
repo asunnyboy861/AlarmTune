@@ -30,7 +30,7 @@ struct AIAlarmGeneratorView: View {
                 .padding()
                 .frame(maxWidth: maxContentWidth)
             }
-            .navigationTitle("AI Sound Generator")
+            .navigationTitle("Tone Generator")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -50,7 +50,7 @@ struct AIAlarmGeneratorView: View {
                 }
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Your AI-generated sound has been saved to Imported Sounds.")
+                Text("Your custom tone has been saved to Imported Sounds.")
             }
         }
     }
@@ -66,7 +66,7 @@ struct AIAlarmGeneratorView: View {
             Text("Generate Custom Sound")
                 .font(.system(size: isPad ? 24 : 20, weight: .bold))
 
-            Text("Pick a style and give your sound a name. AI will generate a unique tone based on the selected style.")
+            Text("Pick a style and give your tone a name. We'll generate a unique alarm tone based on the selected style.")
                 .font(.system(size: isPad ? 16 : 14))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

@@ -73,7 +73,7 @@ final class AIGenerationService {
         var errorDescription: String? {
             switch self {
             case .importLimitReached:
-                return "Import limit reached. Upgrade to Premium for unlimited AI sound generation."
+                return "Import limit reached. Upgrade to Premium for unlimited tone generation."
             }
         }
     }

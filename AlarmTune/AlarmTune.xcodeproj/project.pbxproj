@@ -864,7 +864,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AlarmTune/Info.plist;
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "AlarmTune needs access to your music library to let you set songs as alarm sounds.";
-				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "AlarmTune needs notifications to play your alarms at the right time.";
 				INFOPLIST_KEY_UIBackgroundModes = audio;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -888,7 +887,6 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AlarmTune/Info.plist;
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "AlarmTune needs access to your music library to let you set songs as alarm sounds.";
-				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "AlarmTune needs notifications to play your alarms at the right time.";
 				INFOPLIST_KEY_UIBackgroundModes = audio;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

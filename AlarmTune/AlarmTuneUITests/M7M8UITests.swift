@@ -29,7 +29,7 @@ final class M7M8UITests: XCTestCase {
         XCTAssertTrue(upgradeText.waitForExistence(timeout: 5), "Upgrade to Premium should be visible for free users")
 
         // 验证权益描述存在
-        let benefitDesc = app.staticTexts["Unlimited imports & AI sound generation"]
+        let benefitDesc = app.staticTexts["Unlimited imports & tone generation"]
         XCTAssertTrue(benefitDesc.waitForExistence(timeout: 3), "Benefit description should be visible")
     }
 
@@ -203,13 +203,13 @@ final class M7M8UITests: XCTestCase {
         // 导航到 Sound Picker
         navigateToSoundPicker(app)
 
-        // 验证 "Generate with AI" 或 "Upgrade for AI Generation" 按钮存在
-        let aiButton = app.staticTexts["Generate with AI"]
-        let upgradeAI = app.staticTexts["Upgrade for AI Generation"]
+        // 验证 "Generate Tone" 或 "Upgrade for Tone Generator" 按钮存在
+        let aiButton = app.staticTexts["Generate Tone"]
+        let upgradeAI = app.staticTexts["Upgrade for Tone Generator"]
         let aiExists = aiButton.waitForExistence(timeout: 3)
         let upgradeExists = upgradeAI.waitForExistence(timeout: 3)
 
-        XCTAssertTrue(aiExists || upgradeExists, "AI Generator entry should exist (either available or locked)")
+        XCTAssertTrue(aiExists || upgradeExists, "Tone Generator entry should exist (either available or locked)")
     }
 
     /// 测试 AI Generator 页面打开
@@ -220,20 +220,20 @@ final class M7M8UITests: XCTestCase {
 
         navigateToSoundPicker(app)
 
-        // 点击 Generate with AI（如果存在）
-        let aiButton = app.staticTexts["Generate with AI"]
+        // 点击 Generate Tone（如果存在）
+        let aiButton = app.staticTexts["Generate Tone"]
         guard aiButton.waitForExistence(timeout: 3) else {
             // 如果是 Upgrade 按钮，说明配额已满，测试通过
-            let upgradeAI = app.staticTexts["Upgrade for AI Generation"]
-            XCTAssertTrue(upgradeAI.waitForExistence(timeout: 2), "Should show either AI button or upgrade")
+            let upgradeAI = app.staticTexts["Upgrade for Tone Generator"]
+            XCTAssertTrue(upgradeAI.waitForExistence(timeout: 2), "Should show either tone button or upgrade")
             return
         }
 
         aiButton.tap()
 
-        // 验证 AI Generator 页面出现
-        let title = app.navigationBars["AI Sound Generator"]
-        XCTAssertTrue(title.waitForExistence(timeout: 5), "AI Sound Generator page should appear")
+        // 验证 Tone Generator 页面出现
+        let title = app.navigationBars["Tone Generator"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5), "Tone Generator page should appear")
 
         // 验证风格选项存在
         let calmText = app.staticTexts["Calm"]

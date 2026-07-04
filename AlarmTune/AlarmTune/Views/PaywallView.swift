@@ -53,7 +53,7 @@ struct PaywallView: View {
             Text("Unlock Premium")
                 .font(.system(size: isPad ? 28 : 24, weight: .bold))
 
-            Text("Unlock unlimited imports and AI sound generation")
+            Text("Unlock unlimited imports and tone generation")
                 .font(.system(size: isPad ? 18 : 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -67,7 +67,7 @@ struct PaywallView: View {
         VStack(alignment: .leading, spacing: 16) {
             benefitRow(icon: "infinity.circle.fill", title: "Unlimited Sound Imports", description: "Import unlimited custom sounds from Files")
             benefitRow(icon: "video.fill", title: "Unlimited Video Backgrounds", description: "Import unlimited custom videos from Photos or Files")
-            benefitRow(icon: "wand.and.stars", title: "Unlimited AI Sound Generation", description: "Generate as many custom alarm sounds as you want")
+            benefitRow(icon: "wand.and.stars", title: "Unlimited Tone Generation", description: "Generate as many custom alarm tones as you want")
         }
         .padding()
         .background(Color(.secondarySystemBackground))

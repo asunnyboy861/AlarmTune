@@ -399,10 +399,13 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
         if let importedDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
             let customSoundsDir = importedDir.appendingPathComponent("ImportedSounds", isDirectory: true)
-            for ext in extensions {
-                let url = customSoundsDir.appendingPathComponent("\(sanitizedName).\(ext)")
-                if FileManager.default.fileExists(atPath: url.path) {
-                    return url
+            // P0 fix: 同时检查 sanitized 和原始文件名，因为导入的文件保留原始名（可能含空格）
+            for candidate in [sanitizedName, lookupName] {
+                for ext in extensions {
+                    let url = customSoundsDir.appendingPathComponent("\(candidate).\(ext)")
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        return url
+                    }
                 }
             }
         }

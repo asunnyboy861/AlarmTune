@@ -51,6 +51,12 @@ struct SoundPickerView: View {
                 MusicLibraryService.shared.checkAuthorization()
                 SoundImportService.shared.refreshImportedSounds()
             }
+            .onDisappear {
+                // P1 fix: 离开选择器时停止预览音频，防止 Apple Music 歌曲持续播放
+                if AudioService.shared.isPlaying {
+                    AudioService.shared.stopAlarm()
+                }
+            }
             .sheet(isPresented: $showMusicPicker) {
                 MusicPickerWrapper(selectedSound: $selectedSound)
                     .onDisappear { refreshAppleMusicCache() }
@@ -250,7 +256,7 @@ struct SoundPickerView: View {
                 } label: {
                     HStack {
                         Image(systemName: "wand.and.stars")
-                        Text("Generate with AI")
+                        Text("Generate Tone")
                         if !subscriptionService.isPremium {
                             Text("(\(importService.remainingFreeImports) left)")
                                 .font(.caption)
@@ -269,7 +275,7 @@ struct SoundPickerView: View {
                     HStack {
                         Image(systemName: "lock.fill")
                             .foregroundColor(.yellow)
-                        Text("Upgrade for AI Generation")
+                        Text("Upgrade for Tone Generator")
                             .font(.system(size: 15))
                             .foregroundColor(.purple)
                     }

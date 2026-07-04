@@ -224,10 +224,9 @@ struct AlarmEditView: View {
             }
 
             // V3：视频音量滑块（仅在选择视频后显示）
+            // P1 fix: 不传 onPreview，隐藏 "Preview Volume" 按钮避免点击无反应
             if videoBackgroundName != nil {
-                VolumeSliderView(volume: $videoVolume) { vol in
-                    // 视频音量调节预览（可选，暂不实现以避免与铃声预览冲突）
-                }
+                VolumeSliderView(volume: $videoVolume)
             }
         } header: {
             Text("Video Background")
@@ -321,6 +320,11 @@ struct AlarmEditView: View {
     }
 
     private func saveAlarm() {
+        // P1 fix: 保存前停止任何正在播放的预览音频
+        if AudioService.shared.isPlaying {
+            AudioService.shared.stopAlarm()
+        }
+
         if let existingAlarm = alarm {
             existingAlarm.hour = Int16(hour)
             existingAlarm.minute = Int16(minute)

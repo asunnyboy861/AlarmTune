@@ -48,7 +48,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UIBackgroundModes: "audio"
-        INFOPLIST_KEY_NSUserNotificationsUsageDescription: "AlarmTune needs notifications to play your alarms at the right time."
         INFOPLIST_KEY_NSAppleMusicUsageDescription: "AlarmTune needs access to your music library to let you set songs as alarm sounds."
     entitlements:
       path: AlarmTune/AlarmTune.entitlements
