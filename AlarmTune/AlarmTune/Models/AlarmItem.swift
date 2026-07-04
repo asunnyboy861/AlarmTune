@@ -19,6 +19,7 @@ public class AlarmItem: NSManagedObject, Identifiable {
     @NSManaged public var repeatDays: [Int]?
     @NSManaged public var createdAt: Date?
     @NSManaged public var videoBackgroundName: String?  // M8.2 新增：视频背景标识
+    @NSManaged public var videoVolume: Float  // V3 新增：视频音量 0.0...1.0，默认 0（静音）
 
     var wrappedId: String {
         id ?? UUID().uuidString
@@ -88,34 +89,6 @@ public class AlarmItem: NSManagedObject, Identifiable {
 }
 
 extension AlarmItem {
-    enum VolumePreset: String, CaseIterable {
-        case whisper = "Whisper"
-        case gentle = "Gentle"
-        case moderate = "Moderate"
-        case loud = "Loud"
-        case maximum = "Maximum"
-
-        var volumeValue: Float {
-            switch self {
-            case .whisper: return 0.15
-            case .gentle: return 0.30
-            case .moderate: return 0.55
-            case .loud: return 0.80
-            case .maximum: return 1.0
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .whisper: return "speaker.fill"
-            case .gentle: return "speaker.wave.1.fill"
-            case .moderate: return "speaker.wave.2.fill"
-            case .loud: return "speaker.wave.3.fill"
-            case .maximum: return "speaker.wave.3.fill"
-            }
-        }
-    }
-
     enum AlarmCategory: String, CaseIterable {
         case work = "Work"
         case weekend = "Weekend"
@@ -161,6 +134,7 @@ extension AlarmItem {
         alarm.category = nil
         alarm.repeatDays = nil
         alarm.createdAt = Date()
+        alarm.videoVolume = AppConstants.Alarm.defaultVideoVolume  // V3
         return alarm
     }
 }

@@ -207,11 +207,12 @@ final class VideoImportService: ObservableObject {
     }
 
     /// 生成视频首帧缩略图
+    /// V1：统一缩略图尺寸为 320x180（16:9），与 VideoBackgroundService 一致
     private func generateThumbnail(for url: URL) -> Data? {
         let asset = AVURLAsset(url: url)
         let imageGenerator = AVAssetImageGenerator(asset: asset)
         imageGenerator.appliesPreferredTrackTransform = true
-        imageGenerator.maximumSize = CGSize(width: 200, height: 200)
+        imageGenerator.maximumSize = CGSize(width: 320, height: 180)
 
         do {
             let cgImage = try imageGenerator.copyCGImage(at: .zero, actualTime: nil)

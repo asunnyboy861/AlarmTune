@@ -1,12 +1,20 @@
 import SwiftUI
 import PhotosUI
+import AVKit
 
 /// 视频背景选择器（M8.2，独立页面）
 ///
 /// 参考竞品分析结论：音视频分离架构，符合 Alarmy #1 最佳实践
 /// 三种来源：无背景（默认）/ 内置视频 / 导入视频（相册 + Files）
+///
+/// V1：内置视频卡片显示首帧缩略图（懒加载）
+/// V2：视频卡片/行添加预览播放按钮，点击后同步播放视频+铃声 5 秒
 struct VideoBackgroundPickerView: View {
     @Binding var selectedVideo: String?  // nil = 无视频背景
+
+    /// V2 新增：外部传入当前铃声名和音量，预览时同步播放
+    @Binding var previewSoundName: String
+    @Binding var previewVolume: Float
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -17,7 +25,14 @@ struct VideoBackgroundPickerView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showPaywall = false
 
+    // V2 预览状态
+    @State private var previewingVideoId: String? = nil
+    @State private var previewPlayer: AVQueuePlayer? = nil
+    @State private var previewLooper: AVPlayerLooper? = nil
+    @State private var previewTimer: Timer? = nil
+
     @ObservedObject private var importService = VideoImportService.shared
+    @ObservedObject private var videoService = VideoBackgroundService.shared
     @ObservedObject private var subscriptionService = SubscriptionService.shared
 
     var body: some View {
@@ -34,7 +49,10 @@ struct VideoBackgroundPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        stopPreview()
+                        dismiss()
+                    }
                 }
             }
             .sheet(isPresented: $showDocumentPicker) {
@@ -65,6 +83,12 @@ struct VideoBackgroundPickerView: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
+            .onAppear {
+                videoService.generateThumbnails()
+            }
+            .onDisappear {
+                stopPreview()
+            }
         }
     }
 
@@ -72,6 +96,7 @@ struct VideoBackgroundPickerView: View {
 
     private var noBackgroundSection: some View {
         Button {
+            stopPreview()
             selectedVideo = nil
             HapticService.shared.selection()
             dismiss()
@@ -112,14 +137,19 @@ struct VideoBackgroundPickerView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(VideoBackgroundService.shared.builtInVideos) { video in
+                    ForEach(videoService.builtInVideos) { video in
                         BuiltInVideoCard(
                             video: video,
                             isSelected: selectedVideo == "videoBuiltIn:\(video.id)",
+                            isPreviewing: previewingVideoId == "videoBuiltIn:\(video.id)",
                             onSelect: {
+                                stopPreview()
                                 selectedVideo = "videoBuiltIn:\(video.id)"
                                 HapticService.shared.selection()
                                 dismiss()
+                            },
+                            onPreview: {
+                                togglePreview(videoId: "videoBuiltIn:\(video.id)")
                             }
                         )
                     }
@@ -145,10 +175,15 @@ struct VideoBackgroundPickerView: View {
                 ImportedVideoRow(
                     video: video,
                     isSelected: selectedVideo == video.id,
+                    isPreviewing: previewingVideoId == video.id,
                     onSelect: {
+                        stopPreview()
                         selectedVideo = video.id
                         HapticService.shared.selection()
                         dismiss()
+                    },
+                    onPreview: {
+                        togglePreview(videoId: video.id)
                     },
                     onDelete: { _ = importService.deleteVideo(video) }
                 )
@@ -203,13 +238,78 @@ struct VideoBackgroundPickerView: View {
         }
     }
 
+    // MARK: - V2 Preview
+
+    /// 切换预览状态：未预览则开始，正在预览则停止
+    private func togglePreview(videoId: String) {
+        if previewingVideoId == videoId {
+            stopPreview()
+        } else {
+            startPreview(videoId: videoId)
+        }
+    }
+
+    /// 开始预览视频+铃声（5 秒自动停止）
+    private func startPreview(videoId: String) {
+        stopPreview()
+        previewingVideoId = videoId
+
+        // 1. 播放视频（静音，铃声由 AudioService 独立播放）
+        guard let url = resolveVideoURL(videoId) else { return }
+        let item = AVPlayerItem(url: url)
+        let player = AVQueuePlayer(playerItem: item)
+        player.isMuted = true
+        let looper = AVPlayerLooper(player: player, templateItem: item)
+        player.play()
+        previewPlayer = player
+        previewLooper = looper
+
+        // 2. 同步播放铃声
+        AudioService.shared.previewSound(soundName: previewSoundName, volume: previewVolume)
+
+        // 3. 5 秒后自动停止
+        previewTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+            stopPreview()
+        }
+    }
+
+    /// 停止预览
+    private func stopPreview() {
+        previewPlayer?.pause()
+        previewPlayer = nil
+        previewLooper = nil
+        previewTimer?.invalidate()
+        previewTimer = nil
+        previewingVideoId = nil
+
+        // 停止铃声预览
+        if AudioService.shared.isPlaying {
+            AudioService.shared.stopAlarm()
+        }
+    }
+
+    /// 解析视频 URL（复用 VideoBackgroundView 的 resolvedURL 逻辑）
+    private func resolveVideoURL(_ videoId: String) -> URL? {
+        if videoId.hasPrefix("videoBuiltIn:") {
+            let name = String(videoId.dropFirst("videoBuiltIn:".count))
+            return VideoBackgroundService.shared.urlForVideo(name)
+        } else if videoId.hasPrefix("videoImported:") {
+            let name = String(videoId.dropFirst("videoImported:".count))
+            let mp4URL = VideoImportService.shared.importedDir.appendingPathComponent("\(name).mp4")
+            if FileManager.default.fileExists(atPath: mp4URL.path) { return mp4URL }
+            let movURL = VideoImportService.shared.importedDir.appendingPathComponent("\(name).mov")
+            if FileManager.default.fileExists(atPath: movURL.path) { return movURL }
+            return mp4URL
+        }
+        return nil
+    }
+
     // MARK: - Photo Selection
 
     private func handlePhotoSelection(_ item: PhotosPickerItem?) {
         guard let item = item else { return }
         Task {
             do {
-                // 将视频数据写入临时文件
                 let tempURL = FileManager.default.temporaryDirectory
                     .appendingPathComponent("\(UUID().uuidString).mov")
                 if let data = try await item.loadTransferable(type: Data.self) {
@@ -231,10 +331,14 @@ struct VideoBackgroundPickerView: View {
 }
 
 /// 内置视频卡片
+/// V1：渲染首帧缩略图（降级显示图标）
+/// V2：添加预览播放按钮
 private struct BuiltInVideoCard: View {
     let video: VideoBackgroundInfo
     let isSelected: Bool
+    let isPreviewing: Bool
     let onSelect: () -> Void
+    let onPreview: () -> Void
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -243,13 +347,39 @@ private struct BuiltInVideoCard: View {
             VStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.15))
+                        .fill(Color.gray.opacity(0.15))
                         .frame(width: cardWidth, height: cardHeight)
 
-                    Image(systemName: "play.rectangle.fill")
-                        .font(.system(size: 32))
-                        .foregroundColor(.blue.opacity(0.6))
+                    // V1：渲染缩略图，与 ImportedVideoRow 风格一致
+                    if let data = video.thumbnailData,
+                       let image = UIImage(data: data) {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: cardWidth, height: cardHeight)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        // 降级：无缩略图时显示图标
+                        Image(systemName: "play.rectangle.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(.secondary)
+                    }
 
+                    // V2：预览播放按钮（底部居中，非选中态显示）
+                    if !isSelected {
+                        Button {
+                            onPreview()
+                            HapticService.shared.selection()
+                        } label: {
+                            Image(systemName: isPreviewing ? "stop.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(.white)
+                                .shadow(color: .black.opacity(0.4), radius: 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // 选中态覆盖
                     if isSelected {
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(Color.accentColor, lineWidth: 3)
@@ -276,10 +406,13 @@ private struct BuiltInVideoCard: View {
 }
 
 /// 导入视频行
+/// V2：添加预览播放按钮
 private struct ImportedVideoRow: View {
     let video: VideoImportService.ImportedVideoInfo
     let isSelected: Bool
+    let isPreviewing: Bool
     let onSelect: () -> Void
+    let onPreview: () -> Void
     let onDelete: () -> Void
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -317,6 +450,17 @@ private struct ImportedVideoRow: View {
                 }
 
                 Spacer()
+
+                // V2：预览播放按钮（与 SoundRow 的 play 按钮风格一致）
+                Button {
+                    onPreview()
+                    HapticService.shared.selection()
+                } label: {
+                    Image(systemName: isPreviewing ? "stop.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 22))
+                        .foregroundColor(.accentColor.opacity(0.7))
+                }
+                .buttonStyle(.plain)
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")

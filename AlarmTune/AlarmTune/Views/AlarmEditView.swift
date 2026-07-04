@@ -22,6 +22,8 @@ struct AlarmEditView: View {
     @State private var showSoundPicker = false
     @State private var videoBackgroundName: String? = nil  // M8.2 新增
     @State private var showVideoPicker = false  // M8.2 新增
+    @State private var videoVolume: Float = AppConstants.Alarm.defaultVideoVolume  // V3 新增
+    @State private var showVideoPreview = false  // V4 新增
 
     init(viewModel: AlarmViewModel, alarm: AlarmItem? = nil) {
         self.viewModel = viewModel
@@ -41,6 +43,7 @@ struct AlarmEditView: View {
             _category = State(initialValue: alarm.wrappedCategory)
             _repeatDays = State(initialValue: alarm.repeatDays ?? [])
             _videoBackgroundName = State(initialValue: alarm.videoBackgroundName)  // M8.2
+            _videoVolume = State(initialValue: alarm.videoVolume)  // V3
         }
     }
 
@@ -73,9 +76,25 @@ struct AlarmEditView: View {
                     .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showVideoPicker) {
-                VideoBackgroundPickerView(selectedVideo: $videoBackgroundName)
+                VideoBackgroundPickerView(
+                    selectedVideo: $videoBackgroundName,
+                    previewSoundName: $soundName,
+                    previewVolume: $volume
+                )
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showVideoPreview) {
+                if let videoName = videoBackgroundName {
+                    AlarmPreviewView(
+                        videoName: videoName,
+                        videoVolume: videoVolume,
+                        soundName: soundName,
+                        soundVolume: volume
+                    )
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+                }
             }
         }
         .presentationDetents([.large])
@@ -168,29 +187,58 @@ struct AlarmEditView: View {
 
     /// M8.2：视频背景选择菜单项
     /// 与 Sound 菜单项并列，符合 Alarmy 音视频分离架构
+    /// V3：选择视频后显示视频音量滑块
+    /// V4：添加组合预览按钮
     private var videoBackgroundSection: some View {
         Section {
-            Button {
-                showVideoPicker = true
-            } label: {
-                HStack {
-                    Text("Video Background")
-                    Spacer()
-                    Text(displayVideoBackgroundName)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            HStack {
+                Button {
+                    showVideoPicker = true
+                } label: {
+                    HStack {
+                        Text("Video Background")
+                        Spacer()
+                        Text(displayVideoBackgroundName)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .foregroundColor(.primary)
+                .accessibilityIdentifier("videoPickerButton")
+
+                // V4：组合预览按钮（仅在选择视频后显示）
+                if videoBackgroundName != nil {
+                    Button {
+                        showVideoPreview = true
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.accentColor.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("videoPreviewButton")
                 }
             }
-            .foregroundColor(.primary)
-            .accessibilityIdentifier("videoPickerButton")
+
+            // V3：视频音量滑块（仅在选择视频后显示）
+            if videoBackgroundName != nil {
+                VolumeSliderView(volume: $videoVolume) { vol in
+                    // 视频音量调节预览（可选，暂不实现以避免与铃声预览冲突）
+                }
+            }
         } header: {
             Text("Video Background")
         } footer: {
-            Text("Optional. Video plays silently in background when alarm rings.")
-                .font(.caption2)
+            if videoBackgroundName != nil {
+                Text("Adjust video background volume. Set to 0% to keep video silent.")
+                    .font(.caption2)
+            } else {
+                Text("Optional. Video plays silently in background when alarm rings.")
+                    .font(.caption2)
+            }
         }
     }
 
@@ -287,6 +335,7 @@ struct AlarmEditView: View {
             existingAlarm.category = category.isEmpty ? nil : category
             existingAlarm.repeatDays = repeatDays.isEmpty ? nil : repeatDays
             existingAlarm.videoBackgroundName = videoBackgroundName  // M8.2
+            existingAlarm.videoVolume = videoVolume  // V3
             viewModel.updateAlarm(existingAlarm)
         } else {
             _ = viewModel.addAlarm(
@@ -302,7 +351,8 @@ struct AlarmEditView: View {
                 snoozeDuration: snoozeDuration,
                 category: category.isEmpty ? nil : category,
                 repeatDays: repeatDays.isEmpty ? nil : repeatDays,
-                videoBackgroundName: videoBackgroundName  // M8.2
+                videoBackgroundName: videoBackgroundName,  // M8.2
+                videoVolume: videoVolume  // V3
             )
         }
 

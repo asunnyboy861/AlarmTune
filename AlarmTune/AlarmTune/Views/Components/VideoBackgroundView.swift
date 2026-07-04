@@ -3,10 +3,11 @@ import AVKit
 
 /// 响铃界面的视频背景播放组件（M8.2）
 ///
-/// 视频静音循环播放，声音由 AudioService 独立播放
+/// V3：支持 videoVolume 参数，0 = 静音，>0 = 按音量播放视频原声
 /// 使用 AVPlayerLooper 实现无缝循环
 struct VideoBackgroundView: View {
     let videoName: String  // 含前缀的完整标识
+    let videoVolume: Float  // V3 新增：视频音量 0.0...1.0
 
     @State private var player: AVQueuePlayer?
     @State private var looper: AVPlayerLooper?
@@ -33,7 +34,14 @@ struct VideoBackgroundView: View {
 
         let item = AVPlayerItem(url: url)
         let queuePlayer = AVQueuePlayer(playerItem: item)
-        queuePlayer.isMuted = true  // 视频静音，声音由 AudioService 独立播放
+
+        // V3：根据 videoVolume 决定是否静音
+        if videoVolume <= 0 {
+            queuePlayer.isMuted = true
+        } else {
+            queuePlayer.isMuted = false
+            queuePlayer.volume = videoVolume
+        }
 
         // AVPlayerLooper 实现无缝循环
         looper = AVPlayerLooper(player: queuePlayer, templateItem: item)

@@ -80,6 +80,7 @@
 		1818EF066B9E4B9A8681EE4B /* PremiumLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24EFF8D4A43D4F4DAB7A548E /* PremiumLockView.swift */; };
 		FDE4E5C31CBD4407A0FFD9F8 /* VideoTrimmerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8666627517324FFEBFBEA7C5 /* VideoTrimmerView.swift */; };
 		32F8D6188B8C42F0ABDA4BF2 /* VideoBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF0C159FE08481C8C7F7D24 /* VideoBackgroundView.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* AlarmPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A69787E7F0E1D2 /* AlarmPreviewView.swift */; };
 		38A17166273B46E2AFD0BC98 /* VideoBackgroundPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */; };
 		1E928BEE68204E958E89F402 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94E959BC9EC94A798A1F27F6 /* PaywallView.swift */; };
 		59355E154EFD4AA686838DCA /* AIAlarmGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B340251099984810A008670C /* AIAlarmGeneratorView.swift */; };
@@ -185,6 +186,7 @@
 		24EFF8D4A43D4F4DAB7A548E /* PremiumLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumLockView.swift; sourceTree = "<group>"; };
 		8666627517324FFEBFBEA7C5 /* VideoTrimmerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimmerView.swift; sourceTree = "<group>"; };
 		FBF0C159FE08481C8C7F7D24 /* VideoBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundView.swift; sourceTree = "<group>"; };
+		F1E2D3C4B5A69787E7F0E1D2 /* AlarmPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmPreviewView.swift; sourceTree = "<group>"; };
 		25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundPickerView.swift; sourceTree = "<group>"; };
 		94E959BC9EC94A798A1F27F6 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		B340251099984810A008670C /* AIAlarmGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAlarmGeneratorView.swift; sourceTree = "<group>"; };
@@ -392,6 +394,7 @@
 				24EFF8D4A43D4F4DAB7A548E /* PremiumLockView.swift */,
 				8666627517324FFEBFBEA7C5 /* VideoTrimmerView.swift */,
 				FBF0C159FE08481C8C7F7D24 /* VideoBackgroundView.swift */,
+				F1E2D3C4B5A69787E7F0E1D2 /* AlarmPreviewView.swift */,
 				58679B918399B2304757D1F9 /* VolumeSliderView.swift */,
 			);
 			path = Components;
@@ -599,6 +602,7 @@
 				1818EF066B9E4B9A8681EE4B /* PremiumLockView.swift in Sources */,
 				FDE4E5C31CBD4407A0FFD9F8 /* VideoTrimmerView.swift in Sources */,
 				32F8D6188B8C42F0ABDA4BF2 /* VideoBackgroundView.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* AlarmPreviewView.swift in Sources */,
 				38A17166273B46E2AFD0BC98 /* VideoBackgroundPickerView.swift in Sources */,
 				1E928BEE68204E958E89F402 /* PaywallView.swift in Sources */,
 				59355E154EFD4AA686838DCA /* AIAlarmGeneratorView.swift in Sources */,
