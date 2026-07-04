@@ -9,12 +9,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         configureAudioSession()
         AlarmScheduler.shared.registerNotificationCategories()
-        AlarmScheduler.shared.requestAuthorization { granted in
-            if !granted {
-                print("Notification permission not granted")
-            }
-        }
-
+        // 通知权限推迟到用户创建第一个闹钟时再请求，提高授权率
         return true
     }
 

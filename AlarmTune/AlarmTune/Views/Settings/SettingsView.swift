@@ -9,10 +9,8 @@ struct SettingsView: View {
     @State private var showTerms = false
     @State private var showSupport = false
     @State private var showPaywall = false
-    @State private var isTestPlaying = false
     // F2-3 修复：使用 @ObservedObject 绑定共享单例
     @ObservedObject private var volumeMonitor = VolumeMonitor.shared
-    @ObservedObject private var audioService = AudioService.shared
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var subscriptionService = SubscriptionService.shared
 
@@ -23,7 +21,6 @@ struct SettingsView: View {
                 premiumSection
                 themeSection
                 alarmShuffleSection
-                testAlarmSection
                 supportSection
                 legalSection
                 aboutSection
@@ -51,11 +48,6 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
-            }
-            .onChange(of: audioService.isPlaying) {
-                if isTestPlaying && !audioService.isPlaying {
-                    isTestPlaying = false
-                }
             }
         }
     }
@@ -137,7 +129,7 @@ struct SettingsView: View {
                             Text("Upgrade to Premium")
                                 .font(.system(size: titleSize, weight: .semibold))
                                 .foregroundColor(.primary)
-                            Text("Unlimited sounds, videos & AI features")
+                            Text("Unlimited imports, AI sounds & full volume control")
                                 .font(.system(size: subtitleSize))
                                 .foregroundColor(.secondary)
                         }
@@ -254,81 +246,6 @@ struct SettingsView: View {
 
     private var shuffleModeColor: Color {
         currentShuffleMode != .off ? .accentColor : .secondary
-    }
-
-    private var testAlarmSection: some View {
-        Section {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Background Audio Test")
-                    .font(.system(size: 16, weight: .semibold))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    testStep(number: 1, text: "Tap the button below to start playing")
-                    testStep(number: 2, text: "Press Home or swipe up to background the app")
-                    testStep(number: 3, text: "Audio should continue playing in background")
-                }
-
-                if isTestPlaying {
-                    HStack(spacing: 8) {
-                        Image(systemName: "waveform")
-                            .foregroundColor(.accentColor)
-                            .symbolEffect(.pulse)
-                        Text("Playing in background...")
-                            .font(.system(size: 13))
-                            .foregroundColor(.accentColor)
-                    }
-                }
-
-                Button {
-                    toggleTestAudio()
-                } label: {
-                    HStack {
-                        Image(systemName: isTestPlaying ? "stop.fill" : "play.fill")
-                        Text(isTestPlaying ? "Stop Test" : "Play Test Alarm")
-                    }
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(isTestPlaying ? Color.red.opacity(0.9) : Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-            }
-            .padding(.vertical, 8)
-        } header: {
-            Text("Audio Test")
-        }
-    }
-
-    private func testStep(number: Int, text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Text("\(number)")
-                .font(.system(size: 11, weight: .bold))
-                .frame(width: 18, height: 18)
-                .background(Color.accentColor.opacity(0.2))
-                .foregroundColor(.accentColor)
-                .clipShape(Circle())
-
-            Text(text)
-                .font(.system(size: 13))
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func toggleTestAudio() {
-        if isTestPlaying {
-            AudioService.shared.stopAlarm()
-            isTestPlaying = false
-        } else {
-            AudioService.shared.playAlarm(
-                soundName: AppConstants.Sound.defaultSound,
-                volume: 0.7,
-                fadeIn: false
-            )
-            isTestPlaying = true
-        }
-        HapticService.shared.light()
     }
 
     private var supportSection: some View {

@@ -56,8 +56,8 @@ struct SoundPickerView: View {
             }
             .sheet(isPresented: $showDocumentPicker) {
                 DocumentPickerWrapper { url in
-                    if SoundImportService.shared.importFile(from: url) {
-                        selectedSound = SoundImportService.shared.importedSounds.last?.id ?? selectedSound
+                    if let soundId = SoundImportService.shared.importFile(from: url) {
+                        selectedSound = soundId
                     } else if !SoundImportService.shared.canImportMore {
                         showImportLimitAlert = true
                     }

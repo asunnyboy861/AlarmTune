@@ -49,7 +49,7 @@ struct PaywallView: View {
             Text("Unlock Premium")
                 .font(.system(size: isPad ? 28 : 24, weight: .bold))
 
-            Text("Get unlimited access to all premium sounds, videos, and features")
+            Text("Unlock unlimited imports, AI sound generation, and full volume control")
                 .font(.system(size: isPad ? 18 : 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -62,10 +62,9 @@ struct PaywallView: View {
     private var benefitsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             benefitRow(icon: "infinity.circle.fill", title: "Unlimited Sound Imports", description: "Import unlimited custom sounds from Files")
-            benefitRow(icon: "music.note.list", title: "90+ Premium Sounds", description: "Exclusive ASMR, white noise, and sleep stories")
-            benefitRow(icon: "video.fill", title: "Unlimited Video Backgrounds", description: "Import unlimited custom video backgrounds")
-            benefitRow(icon: "shuffle.circle.fill", title: "Smart Shuffle", description: "Auto-rotate sounds daily or weekly to prevent fatigue")
-            benefitRow(icon: "wand.and.stars", title: "AI Sound Generation", description: "Generate custom alarm sounds with AI")
+            benefitRow(icon: "video.fill", title: "Unlimited Video Backgrounds", description: "Import unlimited custom videos from Photos or Files")
+            benefitRow(icon: "wand.and.stars", title: "Unlimited AI Sound Generation", description: "Generate as many custom alarm sounds as you want")
+            benefitRow(icon: "speaker.wave.3.fill", title: "Full Volume Control", description: "Independent alarm volume with boost and fade-in")
         }
         .padding()
         .background(Color(.secondarySystemBackground))

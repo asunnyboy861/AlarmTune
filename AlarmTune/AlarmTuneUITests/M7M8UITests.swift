@@ -29,7 +29,7 @@ final class M7M8UITests: XCTestCase {
         XCTAssertTrue(upgradeText.waitForExistence(timeout: 5), "Upgrade to Premium should be visible for free users")
 
         // 验证权益描述存在
-        let benefitDesc = app.staticTexts["Unlimited sounds, videos & AI features"]
+        let benefitDesc = app.staticTexts["Unlimited imports, AI sounds & full volume control"]
         XCTAssertTrue(benefitDesc.waitForExistence(timeout: 3), "Benefit description should be visible")
     }
 

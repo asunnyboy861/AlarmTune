@@ -66,28 +66,34 @@ final class SoundImportService: ObservableObject {
     }
 
     /// 从 URL 导入文件（DocumentPicker 回调）
-    /// - Returns: true 导入成功；false 失败或超出配额
+    /// - Returns: 导入后的 soundId（格式 "imported:{fileNameNoExt}"），失败或超出配额返回 nil
     @MainActor
-    func importFile(from url: URL) -> Bool {
-        guard canImportMore else { return false }
+    func importFile(from url: URL) -> String? {
+        guard canImportMore else { return nil }
 
-        let fileName = url.lastPathComponent
-        let destURL = importedDir.appendingPathComponent(fileName)
+        let baseName = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+        var destURL = importedDir.appendingPathComponent(url.lastPathComponent)
 
-        if FileManager.default.fileExists(atPath: destURL.path) {
-            return false
+        // 文件名冲突时自动追加序号，避免用户点击后无反馈
+        var counter = 1
+        var finalBaseName = baseName
+        while FileManager.default.fileExists(atPath: destURL.path) {
+            finalBaseName = "\(baseName)_\(counter)"
+            destURL = importedDir.appendingPathComponent("\(finalBaseName).\(ext)")
+            counter += 1
         }
 
-        guard url.startAccessingSecurityScopedResource() else { return false }
+        guard url.startAccessingSecurityScopedResource() else { return nil }
         defer { url.stopAccessingSecurityScopedResource() }
 
         do {
             try FileManager.default.copyItem(at: url, to: destURL)
             refreshImportedSounds()
-            return true
+            return "imported:\(finalBaseName)"
         } catch {
             print("Import failed: \(error.localizedDescription)")
-            return false
+            return nil
         }
     }
 

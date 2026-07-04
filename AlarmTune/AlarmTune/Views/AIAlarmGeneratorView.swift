@@ -66,7 +66,7 @@ struct AIAlarmGeneratorView: View {
             Text("Generate Custom Sound")
                 .font(.system(size: isPad ? 24 : 20, weight: .bold))
 
-            Text("Describe your ideal alarm sound and pick a style. AI will generate a unique tone for you.")
+            Text("Pick a style and give your sound a name. AI will generate a unique tone based on the selected style.")
                 .font(.system(size: isPad ? 16 : 14))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -78,11 +78,11 @@ struct AIAlarmGeneratorView: View {
 
     private var promptSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Describe Your Sound")
+            Text("Name Your Sound")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.secondary)
 
-            TextField("e.g., gentle morning breeze", text: $prompt, axis: .vertical)
+            TextField("e.g., Gentle Morning Breeze", text: $prompt, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2...4)
                 .font(.system(size: 16))

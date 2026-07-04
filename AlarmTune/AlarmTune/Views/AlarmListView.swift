@@ -7,6 +7,7 @@ struct AlarmListView: View {
     @State private var showingSettings = false
     @State private var alarmToDelete: AlarmItem?
     @State private var showDeleteConfirmation = false
+    @State private var hasRequestedNotificationPermission = false
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.scenePhase) private var scenePhase
@@ -35,8 +36,10 @@ struct AlarmListView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showingAddAlarm = true
-                        HapticService.shared.light()
+                        requestNotificationPermissionIfNeeded {
+                            showingAddAlarm = true
+                            HapticService.shared.light()
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: toolbarIconSize))
@@ -92,8 +95,10 @@ struct AlarmListView: View {
 
     private var emptyStateView: some View {
         EmptyStateView(onAdd: {
-            showingAddAlarm = true
-            HapticService.shared.light()
+            requestNotificationPermissionIfNeeded {
+                showingAddAlarm = true
+                HapticService.shared.light()
+            }
         })
     }
 
@@ -191,6 +196,19 @@ struct AlarmListView: View {
         case "indigo": return .indigo
         case "green": return .green
         default: return .accentColor
+        }
+    }
+
+    /// 首次点击添加闹钟时请求通知权限，已请求过则直接执行
+    private func requestNotificationPermissionIfNeeded(then action: @escaping () -> Void) {
+        if hasRequestedNotificationPermission {
+            action()
+            return
+        }
+
+        hasRequestedNotificationPermission = true
+        AlarmScheduler.shared.requestAuthorization { _ in
+            action()
         }
     }
 }
