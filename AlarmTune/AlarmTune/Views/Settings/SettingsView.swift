@@ -8,17 +8,21 @@ struct SettingsView: View {
     @State private var showPrivacyPolicy = false
     @State private var showTerms = false
     @State private var showSupport = false
+    @State private var showPaywall = false
     @State private var isTestPlaying = false
     // F2-3 修复：使用 @ObservedObject 绑定共享单例
     @ObservedObject private var volumeMonitor = VolumeMonitor.shared
     @ObservedObject private var audioService = AudioService.shared
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var subscriptionService = SubscriptionService.shared
 
     var body: some View {
         NavigationStack {
             Form {
                 appSection
+                premiumSection
                 themeSection
+                alarmShuffleSection
                 testAlarmSection
                 supportSection
                 legalSection
@@ -44,6 +48,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showSupport) {
                 SafariView(url: URL(string: AppConstants.supportURL)!)
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
             }
             .onChange(of: audioService.isPlaying) {
                 if isTestPlaying && !audioService.isPlaying {
@@ -89,6 +96,67 @@ struct SettingsView: View {
         }
     }
 
+    private var premiumSection: some View {
+        Section {
+            if subscriptionService.isPremium {
+                // Premium 用户显示状态
+                HStack(spacing: isPad ? 20 : 12) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: iconSize))
+                        .foregroundColor(.yellow)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Premium Active")
+                            .font(.system(size: titleSize, weight: .semibold))
+                        Text("All features unlocked")
+                            .font(.system(size: subtitleSize))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+                .padding(.vertical, isPad ? 8 : 4)
+
+                Button {
+                    Task { await subscriptionService.restorePurchases() }
+                } label: {
+                    Label("Restore Purchases", systemImage: "arrow.clockwise")
+                }
+            } else {
+                // 免费用户显示升级入口
+                Button {
+                    showPaywall = true
+                    HapticService.shared.light()
+                } label: {
+                    HStack(spacing: isPad ? 20 : 12) {
+                        Image(systemName: "crown.fill")
+                            .font(.system(size: iconSize))
+                            .foregroundColor(.yellow)
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Upgrade to Premium")
+                                .font(.system(size: titleSize, weight: .semibold))
+                                .foregroundColor(.primary)
+                            Text("Unlimited sounds, videos & AI features")
+                                .font(.system(size: subtitleSize))
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, isPad ? 8 : 4)
+                }
+                .buttonStyle(.plain)
+            }
+        } header: {
+            Text("Premium")
+        }
+    }
+
     private var themeSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
@@ -128,6 +196,64 @@ struct SettingsView: View {
         } header: {
             Text("Theme Color")
         }
+    }
+
+    /// M8.1：随机铃声 Shuffle 开关
+    /// 全局设置，用 UserDefaults 存储模式
+    private var alarmShuffleSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(AppConstants.Sound.ShuffleMode.allCases) { mode in
+                    Button {
+                        UserDefaults.standard.set(mode.rawValue, forKey: AppConstants.Sound.shuffleModeKey)
+                        HapticService.shared.selection()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: mode.icon)
+                                .font(.system(size: 16))
+                                .foregroundColor(shuffleModeColor)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(mode.displayName)
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.primary)
+                                if mode != .off {
+                                    Text(mode == .daily ? "Random built-in sound each day" : "Random built-in sound each week")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if currentShuffleMode == mode {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.accentColor)
+                                    .font(.system(size: 20))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Sound Shuffle")
+        } footer: {
+            Text("Automatically change your alarm sound to prevent habituation. Only built-in sounds are shuffled.")
+                .font(.caption2)
+        }
+    }
+
+    private var currentShuffleMode: AppConstants.Sound.ShuffleMode {
+        let raw = UserDefaults.standard.string(forKey: AppConstants.Sound.shuffleModeKey) ?? ""
+        return AppConstants.Sound.ShuffleMode(rawValue: raw) ?? .off
+    }
+
+    private var shuffleModeColor: Color {
+        currentShuffleMode != .off ? .accentColor : .secondary
     }
 
     private var testAlarmSection: some View {

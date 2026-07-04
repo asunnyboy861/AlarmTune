@@ -64,7 +64,8 @@ class PersistenceController {
             ("snoozeDuration", .integer16AttributeType, 5),
             ("category", .stringAttributeType, nil),
             ("repeatDays", .transformableAttributeType, nil),
-            ("createdAt", .dateAttributeType, nil)
+            ("createdAt", .dateAttributeType, nil),
+            ("videoBackgroundName", .stringAttributeType, nil)  // M8.2 新增：视频背景标识
         ]
 
         var propertyDescriptions: [NSPropertyDescription] = []
@@ -73,8 +74,8 @@ class PersistenceController {
             let attr = NSAttributeDescription()
             attr.name = name
             attr.attributeType = type
-            // id and createdAt have no default value but are optional in the model
-            let optionalAttributes: Set<String> = ["id", "createdAt", "category", "repeatDays"]
+            // id, createdAt, category, repeatDays, videoBackgroundName have no default value but are optional in the model
+            let optionalAttributes: Set<String> = ["id", "createdAt", "category", "repeatDays", "videoBackgroundName"]
             attr.isOptional = optionalAttributes.contains(name) || defaultValue != nil
             if let defaultValue = defaultValue {
                 attr.defaultValue = defaultValue

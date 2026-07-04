@@ -12,12 +12,21 @@ struct AlarmRingView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [themeManager.accentColor.opacity(0.9), themeManager.accentColor.opacity(0.6)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // M8.2：视频背景分支（如果有视频背景则播放视频，否则使用渐变背景）
+            if let videoName = viewModel.ringingAlarm?.videoBackgroundName,
+               !videoName.isEmpty {
+                VideoBackgroundView(videoName: videoName)
+                // 半透明遮罩，确保 UI 文字可读
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+            } else {
+                LinearGradient(
+                    colors: [themeManager.accentColor.opacity(0.9), themeManager.accentColor.opacity(0.6)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            }
 
             VStack(spacing: ringSpacing) {
                 Spacer()

@@ -101,6 +101,44 @@ enum AppConstants {
             return .builtIn
         }
 
+        /// 随机铃声 Shuffle 模式（M8.1）
+        /// 防止铃声疲劳：每天/每周自动从内置铃声中随机选择
+        enum ShuffleMode: String, CaseIterable, Identifiable {
+            case off = "off"
+            case daily = "daily"
+            case weekly = "weekly"
+
+            var id: String { rawValue }
+
+            var displayName: String {
+                switch self {
+                case .off:    return "Off"
+                case .daily:  return "Change Daily"
+                case .weekly: return "Change Weekly"
+                }
+            }
+
+            var icon: String {
+                switch self {
+                case .off:    return "arrow.clockwise"
+                case .daily:  return "calendar"
+                case .weekly: return "calendar.badge.clock"
+                }
+            }
+        }
+
+        /// Shuffle 模式存储键
+        static let shuffleModeKey = "alarmShuffleMode"
+        static let shuffleLastChangeKey = "alarmShuffleLastChange"
+
+        /// 从内置铃声中随机选择一首，排除当前铃声
+        static func shuffleSound(excluding current: String) -> String {
+            let pool = builtInSounds
+                .map { $0.displayName }
+                .filter { $0 != current }
+            return pool.randomElement() ?? current
+        }
+
         static let builtInSounds: [SoundInfo] = [
             // Loud
             .builtIn(name: "Emergency Siren",  category: .loud),

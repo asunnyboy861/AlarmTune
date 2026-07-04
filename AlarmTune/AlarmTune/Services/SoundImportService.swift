@@ -29,10 +29,10 @@ final class SoundImportService: ObservableObject {
     }
 
     /// 当前用户是否还可以继续导入
-    /// M5 阶段：所有用户统一按免费配额限制（1 个）
-    /// M7 阶段：扩展为 `SubscriptionService.shared.isPremium || importedSounds.count < Self.freeImportLimit`
+    /// M7a 已实施：Premium 用户无限导入，免费用户限 1 个
+    @MainActor
     var canImportMore: Bool {
-        importedSounds.count < Self.freeImportLimit
+        SubscriptionService.shared.isPremium || importedSounds.count < Self.freeImportLimit
     }
 
     /// 距离免费配额上限还差几个
@@ -67,6 +67,7 @@ final class SoundImportService: ObservableObject {
 
     /// 从 URL 导入文件（DocumentPicker 回调）
     /// - Returns: true 导入成功；false 失败或超出配额
+    @MainActor
     func importFile(from url: URL) -> Bool {
         guard canImportMore else { return false }
 

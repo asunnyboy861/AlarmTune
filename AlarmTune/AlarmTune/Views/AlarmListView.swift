@@ -30,6 +30,7 @@ struct AlarmListView: View {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: toolbarIconSize))
                     }
+                    .accessibilityIdentifier("settingsButton")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

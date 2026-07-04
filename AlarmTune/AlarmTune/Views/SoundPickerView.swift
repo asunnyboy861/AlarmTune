@@ -10,10 +10,13 @@ struct SoundPickerView: View {
     @State private var showMusicPicker = false
     @State private var showDocumentPicker = false
     @State private var showImportLimitAlert = false
+    @State private var showPaywall = false
+    @State private var showAIGenerator = false  // M8.3 新增
     @State private var cachedAppleMusicSongs: [CachedSong] = []
 
     @ObservedObject private var importService = SoundImportService.shared
     @ObservedObject private var musicService = MusicLibraryService.shared
+    @ObservedObject private var subscriptionService = SubscriptionService.shared
 
     private let categories = AppConstants.Sound.SoundCategory.allCases
     private let builtInSounds = AppConstants.Sound.builtInSounds
@@ -61,9 +64,22 @@ struct SoundPickerView: View {
                 }
             }
             .alert("Import Limit Reached", isPresented: $showImportLimitAlert) {
+                Button("Upgrade to Premium") { showPaywall = true }
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Free users can import up to \(SoundImportService.freeImportLimit) custom sound. Delete an existing one to import a new sound.")
+                Text("Free users can import up to \(SoundImportService.freeImportLimit) custom sound. Upgrade to Premium for unlimited imports.")
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
+            .sheet(isPresented: $showAIGenerator) {
+                AIAlarmGeneratorView()
+                    .onReceive(NotificationCenter.default.publisher(for: .aiSoundGenerated)) { notification in
+                        if let soundId = notification.userInfo?["soundId"] as? String {
+                            selectedSound = soundId
+                            HapticService.shared.success()
+                        }
+                    }
             }
         }
     }
@@ -193,20 +209,62 @@ struct SoundPickerView: View {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                         Text("Import from Files")
-                        Text("(\(importService.remainingFreeImports) left)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        if !subscriptionService.isPremium {
+                            Text("(\(importService.remainingFreeImports) left)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .font(.system(size: 15))
                     .foregroundColor(.accentColor)
                 }
             } else {
-                HStack {
-                    Image(systemName: "lock.fill")
-                        .foregroundColor(.yellow)
-                    Text("Free import limit reached")
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
+                // 免费用户配额已满，显示升级按钮
+                Button {
+                    showPaywall = true
+                } label: {
+                    HStack {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.yellow)
+                        Text("Upgrade for unlimited imports")
+                            .font(.system(size: 15))
+                            .foregroundColor(.accentColor)
+                    }
+                }
+            }
+
+            // M8.3：AI 生成铃声入口
+            // AI 生成会写入 ImportedSounds 目录，因此受导入配额限制
+            if importService.canImportMore {
+                Button {
+                    showAIGenerator = true
+                    HapticService.shared.light()
+                } label: {
+                    HStack {
+                        Image(systemName: "wand.and.stars")
+                        Text("Generate with AI")
+                        if !subscriptionService.isPremium {
+                            Text("(\(importService.remainingFreeImports) left)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .font(.system(size: 15))
+                    .foregroundColor(.purple)
+                }
+            } else {
+                // 配额已满，显示升级按钮
+                Button {
+                    showPaywall = true
+                    HapticService.shared.light()
+                } label: {
+                    HStack {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.yellow)
+                        Text("Upgrade for AI Generation")
+                            .font(.system(size: 15))
+                            .foregroundColor(.purple)
+                    }
                 }
             }
         }

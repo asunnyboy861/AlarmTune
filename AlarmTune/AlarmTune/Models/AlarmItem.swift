@@ -18,6 +18,7 @@ public class AlarmItem: NSManagedObject, Identifiable {
     @NSManaged public var category: String?
     @NSManaged public var repeatDays: [Int]?
     @NSManaged public var createdAt: Date?
+    @NSManaged public var videoBackgroundName: String?  // M8.2 新增：视频背景标识
 
     var wrappedId: String {
         id ?? UUID().uuidString

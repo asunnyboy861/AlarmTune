@@ -20,6 +20,8 @@ struct AlarmEditView: View {
     @State private var category: String = ""
     @State private var repeatDays: [Int] = []
     @State private var showSoundPicker = false
+    @State private var videoBackgroundName: String? = nil  // M8.2 新增
+    @State private var showVideoPicker = false  // M8.2 新增
 
     init(viewModel: AlarmViewModel, alarm: AlarmItem? = nil) {
         self.viewModel = viewModel
@@ -38,6 +40,7 @@ struct AlarmEditView: View {
             _snoozeDuration = State(initialValue: Int(alarm.snoozeDuration))
             _category = State(initialValue: alarm.wrappedCategory)
             _repeatDays = State(initialValue: alarm.repeatDays ?? [])
+            _videoBackgroundName = State(initialValue: alarm.videoBackgroundName)  // M8.2
         }
     }
 
@@ -49,6 +52,7 @@ struct AlarmEditView: View {
                 labelSection
                 volumeSection
                 soundSection
+                videoBackgroundSection  // M8.2 新增
                 optionsSection
                 categorySection
             }
@@ -65,6 +69,11 @@ struct AlarmEditView: View {
             }
             .sheet(isPresented: $showSoundPicker) {
                 SoundPickerView(selectedSound: $soundName, previewVolume: volume)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showVideoPicker) {
+                VideoBackgroundPickerView(selectedVideo: $videoBackgroundName)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
@@ -157,6 +166,46 @@ struct AlarmEditView: View {
         }
     }
 
+    /// M8.2：视频背景选择菜单项
+    /// 与 Sound 菜单项并列，符合 Alarmy 音视频分离架构
+    private var videoBackgroundSection: some View {
+        Section {
+            Button {
+                showVideoPicker = true
+            } label: {
+                HStack {
+                    Text("Video Background")
+                    Spacer()
+                    Text(displayVideoBackgroundName)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .foregroundColor(.primary)
+            .accessibilityIdentifier("videoPickerButton")
+        } header: {
+            Text("Video Background")
+        } footer: {
+            Text("Optional. Video plays silently in background when alarm rings.")
+                .font(.caption2)
+        }
+    }
+
+    /// 用于 UI 显示的视频背景名：剥离前缀，nil 显示 "None"
+    private var displayVideoBackgroundName: String {
+        guard let name = videoBackgroundName else { return "None" }
+        if name.hasPrefix("videoBuiltIn:") {
+            let id = String(name.dropFirst("videoBuiltIn:".count))
+            return VideoBackgroundService.shared.builtInVideos.first { $0.id == id }?.title ?? id
+        } else if name.hasPrefix("videoImported:") {
+            return String(name.dropFirst("videoImported:".count))
+        }
+        return name
+    }
+
     private var optionsSection: some View {
         Section {
             Toggle("Fade In Volume", isOn: $isFadeIn)
@@ -237,6 +286,7 @@ struct AlarmEditView: View {
             existingAlarm.snoozeDuration = Int16(snoozeDuration)
             existingAlarm.category = category.isEmpty ? nil : category
             existingAlarm.repeatDays = repeatDays.isEmpty ? nil : repeatDays
+            existingAlarm.videoBackgroundName = videoBackgroundName  // M8.2
             viewModel.updateAlarm(existingAlarm)
         } else {
             _ = viewModel.addAlarm(
@@ -251,7 +301,8 @@ struct AlarmEditView: View {
                 isSnoozeEnabled: isSnoozeEnabled,
                 snoozeDuration: snoozeDuration,
                 category: category.isEmpty ? nil : category,
-                repeatDays: repeatDays.isEmpty ? nil : repeatDays
+                repeatDays: repeatDays.isEmpty ? nil : repeatDays,
+                videoBackgroundName: videoBackgroundName  // M8.2
             )
         }
 

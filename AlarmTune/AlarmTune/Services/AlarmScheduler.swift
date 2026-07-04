@@ -46,10 +46,19 @@ class AlarmScheduler: NSObject {
         // completionHandler 中不传 .sound 避免双重播放
         content.sound = .default
         content.categoryIdentifier = "ALARM_CATEGORY"
+
+        // M8.1：随机铃声 Shuffle 逻辑
+        // 如果开启 Shuffle 且到了更换周期，从内置铃声中随机选择
+        let effectiveSoundName = resolveShuffledSound(for: alarm)
+
+        // M8.2：传递 videoBackgroundName（App 被杀后台时 AlarmViewModel 恢复用）
+        let videoBackgroundName = alarm.videoBackgroundName ?? ""
+
         content.userInfo = [
             "alarmId": alarm.wrappedId,
             "volume": alarm.volume,
-            "soundName": alarm.wrappedSoundName,
+            "soundName": effectiveSoundName,
+            "videoBackgroundName": videoBackgroundName,
             "isFadeIn": alarm.isFadeIn,
             "fadeInDuration": alarm.fadeInDuration,
             "isVibrate": alarm.isVibrate,
@@ -57,6 +66,31 @@ class AlarmScheduler: NSObject {
             "snoozeDuration": Int(alarm.snoozeDuration)
         ]
         return content
+    }
+
+    /// M8.1：解析 Shuffle 后的铃声名
+    /// 如果开启 Shuffle 且到了更换周期，从内置铃声中随机选择一首
+    private func resolveShuffledSound(for alarm: AlarmItem) -> String {
+        let modeRaw = UserDefaults.standard.string(forKey: AppConstants.Sound.shuffleModeKey) ?? ""
+        guard let mode = AppConstants.Sound.ShuffleMode(rawValue: modeRaw),
+              mode != .off else {
+            return alarm.wrappedSoundName
+        }
+
+        let lastChange = UserDefaults.standard.double(forKey: AppConstants.Sound.shuffleLastChangeKey)
+        let now = Date().timeIntervalSince1970
+        let interval: TimeInterval = (mode == .daily) ? 86400 : 604800  // 1 day : 7 days
+
+        // 还未到更换时间，使用上次 Shuffle 的铃声
+        if lastChange > 0 && (now - lastChange) < interval {
+            return UserDefaults.standard.string(forKey: "alarmShuffleCurrentSound") ?? alarm.wrappedSoundName
+        }
+
+        // 到了更换时间，随机选择新铃声
+        let newSound = AppConstants.Sound.shuffleSound(excluding: alarm.wrappedSoundName)
+        UserDefaults.standard.set(newSound, forKey: "alarmShuffleCurrentSound")
+        UserDefaults.standard.set(now, forKey: AppConstants.Sound.shuffleLastChangeKey)
+        return newSound
     }
 
     private func scheduleOneTimeAlarm(alarm: AlarmItem, content: UNMutableNotificationContent) {

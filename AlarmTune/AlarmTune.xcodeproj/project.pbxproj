@@ -59,6 +59,7 @@
 		B589850725361B41A11FF25C /* VolumeSliderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58679B918399B2304757D1F9 /* VolumeSliderView.swift */; };
 		BF3D376390299263BE353CDE /* SoundPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B606623C8DE841535DE1F094 /* SoundPickerView.swift */; };
 		BFEEC4D512E70029930DDAF3 /* AlarmTuneUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52E6D0259DAD064AF274DCD2 /* AlarmTuneUITests.swift */; };
+		52C5EA33BB8240E68602D8B4 /* M7M8UITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0119DF129B6442B391055B75 /* M7M8UITests.swift */; };
 		C131ED0D4251AE0F416A6851 /* CreekStream.caf in Resources */ = {isa = PBXBuildFile; fileRef = 7053819C1476B269EC6FF0CF /* CreekStream.caf */; };
 		CA0E9D2B1AE1868A2B682122 /* MusicLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9402BCF3B314EA5C26BB30D9 /* MusicLibraryService.swift */; };
 		CCD43FFE07B2C2E05EBCFF28 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F33D5A6BBF199F2333A0DC /* AudioService.swift */; };
@@ -72,6 +73,20 @@
 		E51253071A8A37811312FA39 /* CheerfulTune.caf in Resources */ = {isa = PBXBuildFile; fileRef = C2646F01A6F009D835B7638B /* CheerfulTune.caf */; };
 		E664C511B0C0C1BB1942A84C /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1896ACC3FF46C9AA80F9681D /* ScreenshotTests.swift */; };
 		E6E543F24047F2A309CB2547 /* FireAlarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = 75AD3A6785651B56C285F8AB /* FireAlarm.caf */; };
+		DA2AA488EE7742B2B541255F /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 489A72D0D28042DEB570CD1D /* SubscriptionService.swift */; };
+		BD404486635F43E3A3976C17 /* VideoBackgroundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBA409A8DEBE427CB5586878 /* VideoBackgroundService.swift */; };
+		C0EF110C3FE246E99A1B62FF /* VideoImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E960973440D4863B38397D8 /* VideoImportService.swift */; };
+		E5518C694C8640469C80E399 /* AIGenerationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E30261F7A8744F984B78097 /* AIGenerationService.swift */; };
+		1818EF066B9E4B9A8681EE4B /* PremiumLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24EFF8D4A43D4F4DAB7A548E /* PremiumLockView.swift */; };
+		FDE4E5C31CBD4407A0FFD9F8 /* VideoTrimmerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8666627517324FFEBFBEA7C5 /* VideoTrimmerView.swift */; };
+		32F8D6188B8C42F0ABDA4BF2 /* VideoBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF0C159FE08481C8C7F7D24 /* VideoBackgroundView.swift */; };
+		38A17166273B46E2AFD0BC98 /* VideoBackgroundPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */; };
+		1E928BEE68204E958E89F402 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94E959BC9EC94A798A1F27F6 /* PaywallView.swift */; };
+		59355E154EFD4AA686838DCA /* AIAlarmGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B340251099984810A008670C /* AIAlarmGeneratorView.swift */; };
+		EB2F57D6AAD94CB3ACFE96F1 /* sunrise.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = C50A25314F1745DAA8DC9181 /* sunrise.mp4 */; };
+		7B55D57FC3074873A392C8F9 /* coffee.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = E536E59740524F04A2070902 /* coffee.mp4 */; };
+		3F496914AAAE4047AF605536 /* ocean.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = B58CA55925A949A39131B056 /* ocean.mp4 */; };
+		6C39B033BD974576AB36DA84 /* forest.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = A59817A33AD34DA68D8BB814 /* forest.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -112,6 +127,7 @@
 		49EE99250EDFDC5E35423483 /* MorningCoffee.caf */ = {isa = PBXFileReference; path = MorningCoffee.caf; sourceTree = "<group>"; };
 		51372D9FA885C5AA5C1D7E22 /* AlarmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmViewModel.swift; sourceTree = "<group>"; };
 		52E6D0259DAD064AF274DCD2 /* AlarmTuneUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneUITests.swift; sourceTree = "<group>"; };
+		0119DF129B6442B391055B75 /* M7M8UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M7M8UITests.swift; sourceTree = "<group>"; };
 		5375BE5EEBD0EFC317075ED9 /* SunriseGlow.caf */ = {isa = PBXFileReference; path = SunriseGlow.caf; sourceTree = "<group>"; };
 		5695631329A9A5DEBEFC97FE /* NatureChirp.caf */ = {isa = PBXFileReference; path = NatureChirp.caf; sourceTree = "<group>"; };
 		58679B918399B2304757D1F9 /* VolumeSliderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeSliderView.swift; sourceTree = "<group>"; };
@@ -162,6 +178,20 @@
 		F899173A6EEB210E6167A4CE /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 		FB535870A8E4ADD8AE021676 /* DateExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateExtensions.swift; sourceTree = "<group>"; };
 		FE99E9764DDA54B62D096C8C /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		489A72D0D28042DEB570CD1D /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
+		EBA409A8DEBE427CB5586878 /* VideoBackgroundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundService.swift; sourceTree = "<group>"; };
+		9E960973440D4863B38397D8 /* VideoImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoImportService.swift; sourceTree = "<group>"; };
+		8E30261F7A8744F984B78097 /* AIGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationService.swift; sourceTree = "<group>"; };
+		24EFF8D4A43D4F4DAB7A548E /* PremiumLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumLockView.swift; sourceTree = "<group>"; };
+		8666627517324FFEBFBEA7C5 /* VideoTrimmerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimmerView.swift; sourceTree = "<group>"; };
+		FBF0C159FE08481C8C7F7D24 /* VideoBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundView.swift; sourceTree = "<group>"; };
+		25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundPickerView.swift; sourceTree = "<group>"; };
+		94E959BC9EC94A798A1F27F6 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		B340251099984810A008670C /* AIAlarmGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAlarmGeneratorView.swift; sourceTree = "<group>"; };
+		C50A25314F1745DAA8DC9181 /* sunrise.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = sunrise.mp4; sourceTree = "<group>"; };
+		E536E59740524F04A2070902 /* coffee.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = coffee.mp4; sourceTree = "<group>"; };
+		B58CA55925A949A39131B056 /* ocean.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = ocean.mp4; sourceTree = "<group>"; };
+		A59817A33AD34DA68D8BB814 /* forest.mp4 */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.mp4; path = forest.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -169,6 +199,7 @@
 			isa = PBXGroup;
 			children = (
 				949D6A2AFE91543966349231 /* Sounds */,
+				D3385C90B5E9461FB3BBAB1D /* Videos */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -209,6 +240,10 @@
 				BF5A5449A6A642DDE2274C26 /* HapticService.swift */,
 				9402BCF3B314EA5C26BB30D9 /* MusicLibraryService.swift */,
 				0CC232BB5EC309A4693F839E /* SoundImportService.swift */,
+				489A72D0D28042DEB570CD1D /* SubscriptionService.swift */,
+				EBA409A8DEBE427CB5586878 /* VideoBackgroundService.swift */,
+				9E960973440D4863B38397D8 /* VideoImportService.swift */,
+				8E30261F7A8744F984B78097 /* AIGenerationService.swift */,
 				9DE4B8D83A2AE86C4F1C6061 /* ThemeManager.swift */,
 				4369C1498FF4173CBCDEF0E5 /* VolumeManager.swift */,
 				08608C5CAC71A7403D8D2C01 /* VolumeMonitor.swift */,
@@ -283,6 +318,17 @@
 			path = AlarmTune/Sounds;
 			sourceTree = "<group>";
 		};
+		D3385C90B5E9461FB3BBAB1D /* Videos */ = {
+			isa = PBXGroup;
+			children = (
+				C50A25314F1745DAA8DC9181 /* sunrise.mp4 */,
+				E536E59740524F04A2070902 /* coffee.mp4 */,
+				B58CA55925A949A39131B056 /* ocean.mp4 */,
+				A59817A33AD34DA68D8BB814 /* forest.mp4 */,
+			);
+			path = Videos;
+			sourceTree = "<group>";
+		};
 		77482FCEF6826057ABF80FD4 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
@@ -325,6 +371,9 @@
 				F6290FE90280E792469AA84F /* AlarmListView.swift */,
 				2D158826A2F9F3BE91F64BE3 /* AlarmRingView.swift */,
 				B606623C8DE841535DE1F094 /* SoundPickerView.swift */,
+				25A315E774574B98A8DEE554 /* VideoBackgroundPickerView.swift */,
+				94E959BC9EC94A798A1F27F6 /* PaywallView.swift */,
+				B340251099984810A008670C /* AIAlarmGeneratorView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -339,6 +388,9 @@
 				3ACD34B80A320B4FFEFC5F98 /* MusicPickerWrapper.swift */,
 				91774503CF29FB08A4E945E8 /* NextAlarmIndicator.swift */,
 				F21687C58B58142B2C1D8091 /* SoundRow.swift */,
+				24EFF8D4A43D4F4DAB7A548E /* PremiumLockView.swift */,
+				8666627517324FFEBFBEA7C5 /* VideoTrimmerView.swift */,
+				FBF0C159FE08481C8C7F7D24 /* VideoBackgroundView.swift */,
 				58679B918399B2304757D1F9 /* VolumeSliderView.swift */,
 			);
 			path = Components;
@@ -356,6 +408,7 @@
 			isa = PBXGroup;
 			children = (
 				52E6D0259DAD064AF274DCD2 /* AlarmTuneUITests.swift */,
+				0119DF129B6442B391055B75 /* M7M8UITests.swift */,
 				279BC9816C897841D81A52A0 /* AlarmTuneUITestsLaunchTests.swift */,
 				1896ACC3FF46C9AA80F9681D /* ScreenshotTests.swift */,
 			);
@@ -534,6 +587,16 @@
 				272A2D8DCCD97DABB2C129D6 /* PersistenceController.swift in Sources */,
 				5AC907702A4C3FBEECC4853C /* SettingsView.swift in Sources */,
 				76107D64B6E973F8FBAF56FF /* SoundImportService.swift in Sources */,
+				DA2AA488EE7742B2B541255F /* SubscriptionService.swift in Sources */,
+				BD404486635F43E3A3976C17 /* VideoBackgroundService.swift in Sources */,
+				C0EF110C3FE246E99A1B62FF /* VideoImportService.swift in Sources */,
+				E5518C694C8640469C80E399 /* AIGenerationService.swift in Sources */,
+				1818EF066B9E4B9A8681EE4B /* PremiumLockView.swift in Sources */,
+				FDE4E5C31CBD4407A0FFD9F8 /* VideoTrimmerView.swift in Sources */,
+				32F8D6188B8C42F0ABDA4BF2 /* VideoBackgroundView.swift in Sources */,
+				38A17166273B46E2AFD0BC98 /* VideoBackgroundPickerView.swift in Sources */,
+				1E928BEE68204E958E89F402 /* PaywallView.swift in Sources */,
+				59355E154EFD4AA686838DCA /* AIAlarmGeneratorView.swift in Sources */,
 				BF3D376390299263BE353CDE /* SoundPickerView.swift in Sources */,
 				A7EB035BAF89AC4C04A7FD91 /* SoundRow.swift in Sources */,
 				69B871C94EDABCB79F320772 /* ThemeManager.swift in Sources */,
@@ -556,6 +619,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BFEEC4D512E70029930DDAF3 /* AlarmTuneUITests.swift in Sources */,
+				52C5EA33BB8240E68602D8B4 /* M7M8UITests.swift in Sources */,
 				018DCE89E71C4727CF8E8DAE /* AlarmTuneUITestsLaunchTests.swift in Sources */,
 				E664C511B0C0C1BB1942A84C /* ScreenshotTests.swift in Sources */,
 			);
