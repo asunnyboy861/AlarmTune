@@ -93,10 +93,22 @@ class AlarmViewModel: ObservableObject {
     }
 
     func stopRingingAlarm() {
+        // 一次性闹钟（无重复日）触发后自动禁用，符合 Apple Clock App 标准行为
+        if let alarm = ringingAlarm {
+            let repeatDays = alarm.repeatDays ?? []
+            if repeatDays.isEmpty && alarm.isEnabled {
+                alarm.isEnabled = false
+                AlarmScheduler.shared.cancelAlarm(alarm)
+                PersistenceController.shared.saveContext()
+            }
+        }
+
         AudioService.shared.stopAlarm()
         isRinging = false
         ringingAlarm = nil
         NotificationCenter.default.post(name: .alarmDidStop, object: nil)
+        fetchAlarms()
+        updateNextAlarmText()
     }
 
     func snoozeRingingAlarm() {

@@ -84,6 +84,40 @@ final class VideoImportService: ObservableObject {
         }
     }
 
+    /// 异步导入视频（避免转码阻塞主线程）
+    @MainActor
+    func importVideoAsync(from sourceURL: URL) async -> ImportedVideoInfo? {
+        guard canImportMore else { return nil }
+
+        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+        let destFileName = "\(baseName).mp4"
+        let destURL = importedDir.appendingPathComponent(destFileName)
+
+        // 文件名冲突时追加序号
+        var finalURL = destURL
+        var counter = 1
+        while FileManager.default.fileExists(atPath: finalURL.path) {
+            finalURL = importedDir.appendingPathComponent("\(baseName)_\(counter).mp4")
+            counter += 1
+        }
+
+        guard sourceURL.startAccessingSecurityScopedResource() else { return nil }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
+        do {
+            if sourceURL.pathExtension.lowercased() == "mp4" {
+                try FileManager.default.copyItem(at: sourceURL, to: finalURL)
+            } else {
+                try await transcodeToMP4Async(from: sourceURL, to: finalURL)
+            }
+            refreshImportedVideos()
+            return importedVideos.first { $0.fileName == finalURL.lastPathComponent }
+        } catch {
+            print("Video import failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
     /// 删除导入的视频
     @discardableResult
     func deleteVideo(_ info: ImportedVideoInfo) -> Bool {
@@ -132,7 +166,6 @@ final class VideoImportService: ObservableObject {
     private func transcodeToMP4(from source: URL, to dest: URL) throws {
         let asset = AVURLAsset(url: source)
         guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1280x720) else {
-            // 无法转码时直接复制
             try FileManager.default.copyItem(at: source, to: dest)
             return
         }
@@ -145,6 +178,26 @@ final class VideoImportService: ObservableObject {
             semaphore.signal()
         }
         semaphore.wait()
+
+        if exportSession.status != .completed {
+            throw NSError(domain: "VideoImportService", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Video transcode failed: \(exportSession.error?.localizedDescription ?? "unknown")"
+            ])
+        }
+    }
+
+    /// 异步转码为 MP4（避免阻塞主线程）
+    private func transcodeToMP4Async(from source: URL, to dest: URL) async throws {
+        let asset = AVURLAsset(url: source)
+        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPreset1280x720) else {
+            try FileManager.default.copyItem(at: source, to: dest)
+            return
+        }
+        exportSession.outputURL = dest
+        exportSession.outputFileType = .mp4
+        exportSession.shouldOptimizeForNetworkUse = true
+
+        await exportSession.export()
 
         if exportSession.status != .completed {
             throw NSError(domain: "VideoImportService", code: 1, userInfo: [

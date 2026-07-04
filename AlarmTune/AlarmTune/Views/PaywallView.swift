@@ -53,7 +53,7 @@ struct PaywallView: View {
             Text("Unlock Premium")
                 .font(.system(size: isPad ? 28 : 24, weight: .bold))
 
-            Text("Unlock unlimited imports, AI sound generation, and system volume boost")
+            Text("Unlock unlimited imports and AI sound generation")
                 .font(.system(size: isPad ? 18 : 15))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -68,7 +68,6 @@ struct PaywallView: View {
             benefitRow(icon: "infinity.circle.fill", title: "Unlimited Sound Imports", description: "Import unlimited custom sounds from Files")
             benefitRow(icon: "video.fill", title: "Unlimited Video Backgrounds", description: "Import unlimited custom videos from Photos or Files")
             benefitRow(icon: "wand.and.stars", title: "Unlimited AI Sound Generation", description: "Generate as many custom alarm sounds as you want")
-            benefitRow(icon: "speaker.wave.3.fill", title: "System Volume Boost", description: "Alarm always plays at your chosen volume, even on silent")
         }
         .padding()
         .background(Color(.secondarySystemBackground))

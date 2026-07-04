@@ -129,7 +129,7 @@ struct SettingsView: View {
                             Text("Upgrade to Premium")
                                 .font(.system(size: titleSize, weight: .semibold))
                                 .foregroundColor(.primary)
-                            Text("Unlimited imports, AI sounds & system volume boost")
+                            Text("Unlimited imports & AI sound generation")
                                 .font(.system(size: subtitleSize))
                                 .foregroundColor(.secondary)
                         }
