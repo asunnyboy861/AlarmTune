@@ -14,7 +14,7 @@ class AlarmScheduler: NSObject {
     }
 
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge, .criticalAlert]) { granted, error in
+        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error {
                 print("Notification authorization error: \(error.localizedDescription)")
             }
@@ -41,15 +41,16 @@ class AlarmScheduler: NSObject {
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = alarm.wrappedLabel
-        // F2-1 修复：设置兜底系统声音，确保APP被杀后台时仍能听到通知
-        // 当APP在前台时，willPresent 回调启动 AVAudioPlayer 自定义音量播放，
-        // completionHandler 中不传 .sound 避免双重播放
-        content.sound = .default
-        content.categoryIdentifier = "ALARM_CATEGORY"
 
         // M8.1：随机铃声 Shuffle 逻辑
-        // 如果开启 Shuffle 且到了更换周期，从内置铃声中随机选择
         let effectiveSoundName = resolveShuffledSound(for: alarm)
+
+        // 通知声音策略：
+        // - 内置铃声：尝试使用实际铃声文件作为通知音（App 被杀时也能播放自定义铃声）
+        // - 导入/Apple Music：使用 .default 系统铃声兜底（自定义音频无法作为通知音）
+        // - 前台时 willPresent 回调启动 AVAudioPlayer 播放完整自定义音量
+        content.sound = notificationSound(for: effectiveSoundName)
+        content.categoryIdentifier = "ALARM_CATEGORY"
 
         // M8.2：传递 videoBackgroundName（App 被杀后台时 AlarmViewModel 恢复用）
         let videoBackgroundName = alarm.videoBackgroundName ?? ""
@@ -66,6 +67,35 @@ class AlarmScheduler: NSObject {
             "snoozeDuration": Int(alarm.snoozeDuration)
         ]
         return content
+    }
+
+    /// 根据铃声名返回通知声音
+    /// 内置铃声（无前缀）：尝试查找 Bundle 中的音频文件作为通知音
+    /// 导入/Apple Music（有前缀）：使用系统默认铃声兜底
+    private func notificationSound(for soundName: String) -> UNNotificationSound {
+        // 有前缀的是导入或 Apple Music，无法作为通知音
+        guard !soundName.hasPrefix("imported:") && !soundName.hasPrefix("appleMusic:") else {
+            return .default
+        }
+
+        // 尝试在 Bundle 中查找铃声文件
+        let sanitizedName = soundName.replacingOccurrences(of: " ", with: "")
+        let extensions = ["caf", "mp3", "aiff", "wav", "m4a"]
+        let directories: [String?] = ["Sounds", nil]
+
+        for dir in directories {
+            for candidate in [sanitizedName, soundName] {
+                for ext in extensions {
+                    if Bundle.main.url(forResource: candidate, withExtension: ext, subdirectory: dir) != nil {
+                        // 通知声音文件名需包含扩展名
+                        return UNNotificationSound(named: UNNotificationSoundName("\(candidate).\(ext)"))
+                    }
+                }
+            }
+        }
+
+        // 未找到铃声文件，使用系统默认
+        return .default
     }
 
     /// M8.1：解析 Shuffle 后的铃声名
@@ -141,13 +171,14 @@ class AlarmScheduler: NSObject {
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = "\(alarm.wrappedLabel) (Snooze)"
-        // F2-1 修复：贪睡通知也需要兜底声音
-        content.sound = .default
+        // 贪睡通知使用与主闹钟相同的声音策略
+        content.sound = notificationSound(for: alarm.wrappedSoundName)
         content.categoryIdentifier = "ALARM_CATEGORY"
         content.userInfo = [
             "alarmId": alarm.wrappedId,
             "volume": alarm.volume,
             "soundName": alarm.wrappedSoundName,
+            "videoBackgroundName": alarm.videoBackgroundName ?? "",
             "isFadeIn": false,
             "fadeInDuration": 0.0,
             "isVibrate": alarm.isVibrate,

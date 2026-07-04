@@ -94,9 +94,21 @@ struct PaywallView: View {
     private var subscriptionOptionsSection: some View {
         VStack(spacing: 12) {
             if subscriptionService.products.isEmpty {
-                // StoreKit Configuration File 未配置时的占位
+                #if DEBUG
+                // DEBUG 模式：StoreKit Configuration File 未配置时的占位
                 placeholderProduct(.monthly)
                 placeholderProduct(.yearly)
+                #else
+                // Release 模式：商品加载中或 App Store Connect 未配置
+                VStack(spacing: 8) {
+                    ProgressView()
+                    Text("Loading subscription options...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                #endif
             } else {
                 ForEach(subscriptionService.products, id: \.id) { product in
                     productCard(product)
@@ -179,10 +191,11 @@ struct PaywallView: View {
     }
 
     private func purchasePlaceholder(_ id: SubscriptionService.ProductID) async {
-        // M7a 阶段：本地模拟购买成功（需配合 StoreKit Configuration File）
-        // M7b 阶段：替换为真实 StoreKit 购买
+        #if DEBUG
+        // DEBUG 模式：本地模拟购买成功
         await subscriptionService.simulatePurchase()
         dismiss()
+        #endif
     }
 
     // MARK: - Restore

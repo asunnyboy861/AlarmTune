@@ -9,6 +9,7 @@ struct AlarmListView: View {
     @State private var showDeleteConfirmation = false
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
@@ -68,6 +69,11 @@ struct AlarmListView: View {
                 Button("Cancel", role: .cancel) {}
             } message: { alarm in
                 Text("\"\(alarm.wrappedLabel)\" will be permanently deleted.")
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                viewModel.refresh()
             }
         }
     }

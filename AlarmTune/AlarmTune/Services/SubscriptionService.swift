@@ -49,12 +49,14 @@ final class SubscriptionService: ObservableObject {
         Task {
             await loadProducts()
             await updatePurchasedStatus()
-            // M7a：检查本地模拟购买 override（仅用于无 App Store Connect 配置时本地体验）
+            #if DEBUG
+            // M7a：检查本地模拟购买 override（仅 DEBUG 模式，上线前移除）
             await MainActor.run {
                 if UserDefaults.standard.bool(forKey: "premiumOverride") {
                     self.isPremium = true
                 }
             }
+            #endif
         }
     }
 
@@ -132,7 +134,8 @@ final class SubscriptionService: ObservableObject {
         }
     }
 
-    /// M7a 本地模拟购买（当无 App Store Connect 配置时使用）
+    #if DEBUG
+    /// M7a 本地模拟购买（仅 DEBUG 模式，上线前移除）
     /// M7b 阶段替换为真实 StoreKit 购买
     func simulatePurchase() async {
         await MainActor.run {
@@ -148,6 +151,7 @@ final class SubscriptionService: ObservableObject {
             self.isPurchasing = false
         }
     }
+    #endif
 
     // MARK: - Private
 

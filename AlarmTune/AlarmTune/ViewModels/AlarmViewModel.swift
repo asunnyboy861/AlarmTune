@@ -27,6 +27,12 @@ class AlarmViewModel: ObservableObject {
         }
     }
 
+    /// 刷新闹钟列表和下次闹钟文本（用于 scenePhase 回到前台时调用）
+    func refresh() {
+        fetchAlarms()
+        updateNextAlarmText()
+    }
+
     func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, isSnoozeEnabled: Bool = true, snoozeDuration: Int = AppConstants.Alarm.defaultSnoozeMinutes, category: String?, repeatDays: [Int]? = nil, videoBackgroundName: String? = nil) -> AlarmItem {
         let alarm = AlarmItem.create(in: context)
         alarm.hour = Int16(hour)
@@ -159,6 +165,11 @@ class AlarmViewModel: ObservableObject {
     @objc private func handleAlarmFired(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let alarmId = userInfo["alarmId"] as? String else { return }
+
+        // 冷启动时 alarms 数组可能为空，先 fetch 再查找
+        if alarms.isEmpty {
+            fetchAlarms()
+        }
 
         let matchingAlarm = alarms.first { $0.wrappedId == alarmId }
         DispatchQueue.main.async {

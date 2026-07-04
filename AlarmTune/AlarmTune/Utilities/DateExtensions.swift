@@ -28,14 +28,15 @@ extension Date {
 
     var formattedTime: String {
         let formatter = DateFormatter()
-        formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "h:mm a"
         return formatter.string(from: self)
     }
 
     var formattedDateAndTime: String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, h:mm a"
         return formatter.string(from: self)
     }
 
