@@ -199,7 +199,6 @@
 			isa = PBXGroup;
 			children = (
 				949D6A2AFE91543966349231 /* Sounds */,
-				D3385C90B5E9461FB3BBAB1D /* Videos */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -266,6 +265,7 @@
 				D17B6FD20EB64F0AC6F8990C /* AlarmTuneTests */,
 				EB021ABD925FC25A861D6F2D /* AlarmTuneUITests */,
 				6D097E0A78CB2EA5A70512FF /* Sounds */,
+				D3385C90B5E9461FB3BBAB1D /* Videos */,
 				653EE4BC41564E5A2BD32E29 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -326,7 +326,8 @@
 				B58CA55925A949A39131B056 /* ocean.mp4 */,
 				A59817A33AD34DA68D8BB814 /* forest.mp4 */,
 			);
-			path = Videos;
+			name = Videos;
+			path = AlarmTune/Videos;
 			sourceTree = "<group>";
 		};
 		77482FCEF6826057ABF80FD4 /* Utilities */ = {
@@ -553,6 +554,10 @@
 				0915C29CD8E211858AF6A169 /* ThunderRoll.caf in Resources */,
 				2826855CB357987F1C2A0158 /* WindChime.caf in Resources */,
 				05C43C8318279C7CB9287B2F /* ZenBowl.caf in Resources */,
+				EB2F57D6AAD94CB3ACFE96F1 /* sunrise.mp4 in Resources */,
+				7B55D57FC3074873A392C8F9 /* coffee.mp4 in Resources */,
+				3F496914AAAE4047AF605536 /* ocean.mp4 in Resources */,
+				6C39B033BD974576AB36DA84 /* forest.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
