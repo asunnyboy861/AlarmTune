@@ -57,6 +57,10 @@ struct AlarmPreviewView: View {
         .onAppear {
             startPreview()
         }
+        .onDisappear {
+            // P1 fix: 确保用户下滑关闭 sheet 时也停止音频和视频
+            stopAndDismiss()
+        }
         .onReceive(timer) { _ in
             if countdown > 1 {
                 countdown -= 1
