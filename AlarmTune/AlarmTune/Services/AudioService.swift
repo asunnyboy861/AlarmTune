@@ -15,6 +15,9 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isPlaying: Bool = false
     @Published var currentVolume: Float = 0.0
 
+    /// 标记当前播放是否因为 Apple Music 歌曲不可用而 fallback 到默认铃声
+    @Published private(set) var didFallbackToDefault: Bool = false
+
     private override init() {
         super.init()
         setupNotifications()
@@ -99,6 +102,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
     func playAlarm(soundName: String, volume: Float, fadeIn: Bool = false, fadeInDuration: Double = 5.0) {
         stopAlarm()
         beginBackgroundTask()
+        didFallbackToDefault = false
 
         let source = AppConstants.Sound.source(for: soundName)
 
@@ -179,6 +183,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
               let persistentIDStr = identifier.split(separator: ":").last,
               let persistentID = UInt64(persistentIDStr) else {
             print("Invalid Apple Music identifier: \(identifier), fallback to default")
+            didFallbackToDefault = true
             playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
             return
         }
@@ -190,6 +195,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         ))
         guard let items = query.items, !items.isEmpty else {
             print("Apple Music song not found in library, fallback to default")
+            didFallbackToDefault = true
             playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
             return
         }

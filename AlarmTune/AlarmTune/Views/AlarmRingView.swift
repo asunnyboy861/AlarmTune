@@ -3,6 +3,7 @@ import SwiftUI
 struct AlarmRingView: View {
     @ObservedObject var viewModel: AlarmViewModel
     @ObservedObject private var volumeManager = VolumeManager.shared
+    @ObservedObject private var audioService = AudioService.shared
     @ObservedObject private var themeManager = ThemeManager.shared
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var pulseScale: CGFloat = 1.0
@@ -47,6 +48,13 @@ struct AlarmRingView: View {
                             .font(.system(size: volumeIconSize, weight: .semibold))
                     }
                     .foregroundColor(.white.opacity(0.8))
+
+                    // Apple Music 歌曲不可用时提示用户（仅在实际 fallback 时显示）
+                    if audioService.didFallbackToDefault {
+                        Text("Song unavailable — using default sound")
+                            .font(.system(size: isPad ? 13 : 11))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
 
                     // F2-5 新增：显示系统音量已被临时调高的提示
                     if volumeManager.isAlarmActive {

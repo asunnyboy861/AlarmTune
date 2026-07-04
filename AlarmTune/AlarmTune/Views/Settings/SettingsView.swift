@@ -129,7 +129,7 @@ struct SettingsView: View {
                             Text("Upgrade to Premium")
                                 .font(.system(size: titleSize, weight: .semibold))
                                 .foregroundColor(.primary)
-                            Text("Unlimited imports, AI sounds & full volume control")
+                            Text("Unlimited imports, AI sounds & system volume boost")
                                 .font(.system(size: subtitleSize))
                                 .foregroundColor(.secondary)
                         }
@@ -291,7 +291,6 @@ struct SettingsView: View {
                 Text("Made with")
                 Image(systemName: "heart.fill")
                     .foregroundColor(.red)
-                Text("in the USA")
             }
             .font(.caption)
             .foregroundColor(.secondary)

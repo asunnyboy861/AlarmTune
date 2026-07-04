@@ -6,8 +6,6 @@
 	<array>
 		<string>audio</string>
 	</array>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>AlarmTune needs notifications to play your alarms at the right time.</string>
 	<key>NSAppleMusicUsageDescription</key>
 	<string>AlarmTune needs access to your music library to let you set songs as alarm sounds.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

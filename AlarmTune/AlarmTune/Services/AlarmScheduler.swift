@@ -100,6 +100,7 @@ class AlarmScheduler: NSObject {
 
     /// M8.1：解析 Shuffle 后的铃声名
     /// 如果开启 Shuffle 且到了更换周期，从内置铃声中随机选择一首
+    /// 使用 per-alarm key 避免多闹钟互相覆盖
     private func resolveShuffledSound(for alarm: AlarmItem) -> String {
         let modeRaw = UserDefaults.standard.string(forKey: AppConstants.Sound.shuffleModeKey) ?? ""
         guard let mode = AppConstants.Sound.ShuffleMode(rawValue: modeRaw),
@@ -107,19 +108,23 @@ class AlarmScheduler: NSObject {
             return alarm.wrappedSoundName
         }
 
-        let lastChange = UserDefaults.standard.double(forKey: AppConstants.Sound.shuffleLastChangeKey)
+        let alarmId = alarm.wrappedId
+        let shuffleKey = "alarmShuffleCurrentSound_\(alarmId)"
+        let lastChangeKey = "alarmShuffleLastChange_\(alarmId)"
+
+        let lastChange = UserDefaults.standard.double(forKey: lastChangeKey)
         let now = Date().timeIntervalSince1970
         let interval: TimeInterval = (mode == .daily) ? 86400 : 604800  // 1 day : 7 days
 
         // 还未到更换时间，使用上次 Shuffle 的铃声
         if lastChange > 0 && (now - lastChange) < interval {
-            return UserDefaults.standard.string(forKey: "alarmShuffleCurrentSound") ?? alarm.wrappedSoundName
+            return UserDefaults.standard.string(forKey: shuffleKey) ?? alarm.wrappedSoundName
         }
 
         // 到了更换时间，随机选择新铃声
         let newSound = AppConstants.Sound.shuffleSound(excluding: alarm.wrappedSoundName)
-        UserDefaults.standard.set(newSound, forKey: "alarmShuffleCurrentSound")
-        UserDefaults.standard.set(now, forKey: AppConstants.Sound.shuffleLastChangeKey)
+        UserDefaults.standard.set(newSound, forKey: shuffleKey)
+        UserDefaults.standard.set(now, forKey: lastChangeKey)
         return newSound
     }
 
