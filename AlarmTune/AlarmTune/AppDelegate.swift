@@ -10,6 +10,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         configureAudioSession()
         AlarmScheduler.shared.registerNotificationCategories()
         // 通知权限推迟到用户创建第一个闹钟时再请求，提高授权率
+
+        // V1：应用启动时预生成内置视频缩略图，用户打开选择器时立即可见
+        Task { @MainActor in
+            VideoBackgroundService.shared.generateThumbnails()
+        }
+
         return true
     }
 
