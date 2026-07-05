@@ -44,8 +44,12 @@ struct AlarmEditView: View {
             _category = State(initialValue: alarm.wrappedCategory)
             _repeatDays = State(initialValue: alarm.repeatDays ?? [])
             _videoBackgroundName = State(initialValue: alarm.videoBackgroundName)  // M8.2
-            _videoVolume = State(initialValue: alarm.videoVolume)  // V3
-            _audioSource = State(initialValue: alarm.wrappedAudioSource)  // W1
+            // W5: 修复已有闹钟 videoVolume=0 导致播放无声；有视频但音量0时设为默认值
+            let savedVideoVolume = alarm.videoVolume
+            _videoVolume = State(initialValue: (alarm.videoBackgroundName != nil && savedVideoVolume <= 0)
+                ? AppConstants.Alarm.defaultVideoVolume : savedVideoVolume)
+            // W5: 有视频自动 videoSound，无视频自动 alarmSound（不再需要用户手动选择）
+            _audioSource = State(initialValue: alarm.videoBackgroundName != nil ? .videoSound : .alarmSound)
         }
     }
 
@@ -229,43 +233,18 @@ struct AlarmEditView: View {
             }
 
             // V3：视频音量滑块（仅在选择视频后显示）
-            // P1 fix: 不传 onPreview，隐藏 "Preview Volume" 按钮避免点击无反应
+            // W5：选择视频后自动使用视频原声，无需手动选择音频来源
             if videoBackgroundName != nil {
                 VolumeSliderView(volume: $videoVolume)
-            }
-
-            // W1：音频来源选择器（仅在选择视频后显示）
-            // alarmSound = 闹钟铃声（视频静音）
-            // videoSound = 视频原声（不播放闹钟铃声）
-            if videoBackgroundName != nil {
-                Picker("Audio Source", selection: $audioSource) {
-                    ForEach(AppConstants.AudioSource.allCases) { source in
-                        Label(source.displayName, systemImage: source.icon)
-                            .tag(source)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("audioSourcePicker")
-                .onChange(of: audioSource) { _, newValue in
-                    // W1：切到 Video Sound 时，若 videoVolume 为 0 则设为默认值（避免无声）
-                    if newValue == .videoSound && videoVolume <= 0 {
-                        videoVolume = AppConstants.Alarm.defaultVolume
-                    }
-                }
             }
         } header: {
             Text("Video Background")
         } footer: {
             if videoBackgroundName != nil {
-                if audioSource == .videoSound {
-                    Text("Video Alarm mode: video plays with its own sound. Alarm sound is off.")
-                        .font(.caption2)
-                } else {
-                    Text("Video + Sound mode: video plays silently, alarm sound plays at set volume.")
-                        .font(.caption2)
-                }
+                Text("Video Alarm: video plays with its own sound when alarm rings.")
+                    .font(.caption2)
             } else {
-                Text("Sound Alarm mode: alarm sound plays when alarm rings. Select a video to enable video alarm.")
+                Text("Sound Alarm: alarm sound plays when alarm rings. Select a video to enable video alarm.")
                     .font(.caption2)
             }
         }
@@ -354,6 +333,9 @@ struct AlarmEditView: View {
         if AudioService.shared.isPlaying {
             AudioService.shared.stopAlarm()
         }
+
+        // W5：保存前确保 audioSource 与视频状态一致（有视频=videoSound，无视频=alarmSound）
+        audioSource = videoBackgroundName != nil ? .videoSound : .alarmSound
 
         if let existingAlarm = alarm {
             existingAlarm.hour = Int16(hour)

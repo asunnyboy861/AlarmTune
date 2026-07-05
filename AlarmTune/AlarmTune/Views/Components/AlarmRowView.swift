@@ -108,25 +108,17 @@ struct AlarmRowView: View {
         }
     }
 
-    /// W5：闹钟模式徽章 — 视频闹钟 / 声音闹钟 / 视频+声音
+    /// W5：闹钟模式徽章 — 视频闹钟 / 声音闹钟
     /// 参考竞品 Alarmy：卡片上明确显示闹钟触发方式
     private var alarmModeBadge: some View {
         Group {
-            let hasVideo = alarm.videoBackgroundName != nil
-            let isVideoSound = alarm.wrappedAudioSource == .videoSound
-
-            if hasVideo && isVideoSound {
-                // 纯视频闹钟：视频画面 + 视频原声
+            if alarm.videoBackgroundName != nil {
+                // 视频闹钟：视频画面 + 视频原声
                 Label("Video", systemImage: "play.rectangle.fill")
                     .dynamicFont(tagFontSize, weight: .medium)
                     .foregroundColor(.purple)
-            } else if hasVideo && !isVideoSound {
-                // 视频+声音：视频画面（静音）+ 闹钟铃声
-                Label("Video+Sound", systemImage: "play.rectangle")
-                    .dynamicFont(tagFontSize, weight: .medium)
-                    .foregroundColor(.orange)
             } else {
-                // 纯声音闹钟
+                // 声音闹钟
                 Label(alarm.wrappedSoundName, systemImage: "bell.fill")
                     .dynamicFont(tagFontSize)
                     .foregroundColor(.secondary)

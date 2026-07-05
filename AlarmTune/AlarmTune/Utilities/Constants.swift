@@ -19,8 +19,9 @@ enum AppConstants {
         static let maxFadeInDuration: Double = 30.0
         static let minSnoozeDuration: Int = 1
         static let maxSnoozeDuration: Int = 30
-        // V3 新增：视频背景音量默认值（0 = 静音，向后兼容）
-        static let defaultVideoVolume: Float = 0.0
+        // V3 新增：视频背景音量默认值（0.55 = 55%，与闹钟音量一致）
+        // W5：从 0.0 改为 0.55，避免用户选择视频后预览/响铃无声
+        static let defaultVideoVolume: Float = 0.55
 
         // W1 新增：默认音频来源（闹钟铃声模式，向后兼容）
         static let defaultAudioSource: String = "alarmSound"

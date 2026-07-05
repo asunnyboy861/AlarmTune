@@ -194,9 +194,12 @@ struct VideoBackgroundPickerView: View {
                                         onSelect: {
                                             stopPreview()
                                             selectedVideo = "videoBuiltIn:\(video.id)"
-                                            // 选择带音轨的视频后自动切换为 videoSound
+                                            // W5：选择视频后自动使用视频原声，且确保音量不为0
                                             if video.hasAudioTrack {
                                                 audioSource = .videoSound
+                                                if videoVolume <= 0 {
+                                                    videoVolume = AppConstants.Alarm.defaultVideoVolume
+                                                }
                                             }
                                             HapticService.shared.selection()
                                         },
@@ -254,8 +257,11 @@ struct VideoBackgroundPickerView: View {
                     onSelect: {
                         stopPreview()
                         selectedVideo = video.id
-                        // 选择导入视频后默认切换为 videoSound（导入视频通常有音轨）
+                        // W5：选择导入视频后自动使用视频原声，且确保音量不为0
                         audioSource = .videoSound
+                        if videoVolume <= 0 {
+                            videoVolume = AppConstants.Alarm.defaultVideoVolume
+                        }
                         HapticService.shared.selection()
                     },
                     onPreview: {
