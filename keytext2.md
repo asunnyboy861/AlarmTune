@@ -29,13 +29,13 @@ Apple Music Integration
 Pick any song from your Apple Music library as your alarm sound. Wake up to your favorite track every morning.
 
 Custom Sound Import
-Import your own sound files from the Files app. Use any audio clip as your alarm -- a podcast intro, a recorded message, or a custom tone.
+Import your own sound files from the Files app. Use any audio clip as your alarm.
 
 AI Sound Generation
-Create unique alarm sounds with AI. Choose from 4 styles -- Calm, Energetic, Nature, and Retro -- and generate a fresh sound instantly.
+Create unique alarm sounds with AI. Choose from 4 styles and generate a fresh sound instantly.
 
 Sound Shuffle
-Keep your mornings fresh. Sound Shuffle automatically rotates your alarm sound daily or weekly from the built-in sound library. No more alarm fatigue.
+Automatically rotate your alarm sound daily or weekly from the built-in sound library. No more alarm fatigue.
 
 30+ Alarm Sounds
 Select from 30+ alarm sounds across 5 categories: Loud, Nature, Gentle, Classic, and Fun. Preview each sound before committing.
@@ -50,16 +50,16 @@ Alarm Categories
 Organize alarms with categories like Work, Weekend, Important, Nap, and Medication. Each has its own icon and color.
 
 System Volume Boost
-When your alarm fires, AlarmTune raises your system volume to maximum so your chosen volume plays at full strength. Your original volume is restored when the alarm stops. A real-time monitor warns you if your ringer is too low.
+AlarmTune automatically raises your system volume to maximum when an alarm fires, ensuring your chosen volume plays at full strength. Your original volume is restored when the alarm stops.
 
 Notification Fallback Sound
-Even if AlarmTune is closed or force-quit, your alarm notification plays a system sound to make sure you wake up.
+Even if AlarmTune is closed or force-quit, your alarm notification plays a system sound to ensure you wake up.
 
 Works When It Matters
 Alarms fire reliably even when your phone is on silent mode or the screen is locked, thanks to background audio playback and notification fallback sounds.
 
 Full Accessibility
-AlarmTune supports VoiceOver with clearly labeled controls throughout the app. Dynamic Type lets you adjust text sizes to your preference. Every slider, button, and alarm screen is accessible.
+AlarmTune supports VoiceOver with clearly labeled controls throughout the app. Dynamic Type lets you adjust text sizes to your preference.
 
 WHO IS ALARMTUNE FOR?
 
@@ -113,7 +113,7 @@ Key technical details:
    - Restore Purchases available in Settings and Paywall
    - PaywallView includes Privacy Policy and Terms of Use links below the Subscribe button
    - Auto-renewal disclosure with dynamic pricing from StoreKit Product, and cancellation instructions
-9. Accessibility: Full VoiceOver support — all icon-only buttons have accessibilityLabel/Hint, sliders have accessibilityValue, alarm ringing screen has labels for time/label/volume. Dynamic Type via @ScaledMetric-based DynamicFontModifier with capped max scaling.
+9. Accessibility: Full VoiceOver support -- all icon-only buttons have accessibilityLabel/Hint, sliders have accessibilityValue, alarm ringing screen has labels for time/label/volume. Dynamic Type via @ScaledMetric-based DynamicFontModifier with capped max scaling.
 10. Reliability: UNNotificationDismissActionIdentifier handling auto-disables one-time alarms on swipe. AudioFallbackReason enum provides user-facing messages when sounds are missing. Core Data uses recoverFromStoreCorruption() instead of fatalError. VolumeManager uses 3-attempt retry for MPVolumeView slider.
 
 China App Store Compliance:
