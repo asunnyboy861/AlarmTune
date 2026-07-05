@@ -13,6 +13,7 @@ struct SoundPickerView: View {
     @State private var showImportFailedAlert = false
     @State private var showPaywall = false
     @State private var showAIGenerator = false  // M8.3 新增
+    @State private var showSubscriptionAlert = false  // M6 新增
     @State private var cachedAppleMusicSongs: [CachedSong] = []
 
     @ObservedObject private var importService = SoundImportService.shared
@@ -82,6 +83,11 @@ struct SoundPickerView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Could not import this audio file. Please make sure it's a supported format.")
+            }
+            .alert("Apple Music Required", isPresented: $showSubscriptionAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("An active Apple Music subscription is required to use catalog songs as alarm sounds. You can still import audio files from the Files app.")
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
@@ -153,8 +159,23 @@ struct SoundPickerView: View {
                     )
                 }
 
+                // M12 新增：空状态说明
+                if cachedAppleMusicSongs.isEmpty {
+                    Text("No songs selected yet. Tap below to choose from your Apple Music library.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 4)
+                }
+
                 Button {
-                    showMusicPicker = true
+                    // M6 新增：选歌前检查 Apple Music 订阅状态
+                    MusicLibraryService.shared.checkAppleMusicSubscription { canPlay in
+                        if canPlay {
+                            showMusicPicker = true
+                        } else {
+                            showSubscriptionAlert = true
+                        }
+                    }
                 } label: {
                     HStack {
                         Image(systemName: "plus.circle.fill")
@@ -166,7 +187,16 @@ struct SoundPickerView: View {
             } else {
                 Button {
                     MusicLibraryService.shared.requestAuthorization { granted in
-                        if granted { showMusicPicker = true }
+                        if granted {
+                            // M6：授权后再检查订阅状态
+                            MusicLibraryService.shared.checkAppleMusicSubscription { canPlay in
+                                if canPlay {
+                                    showMusicPicker = true
+                                } else {
+                                    showSubscriptionAlert = true
+                                }
+                            }
+                        }
                     }
                 } label: {
                     HStack {
@@ -190,6 +220,14 @@ struct SoundPickerView: View {
                 Text("Imported Sounds")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.secondary)
+            }
+
+            // M12 新增：空状态说明
+            if importService.importedSounds.isEmpty {
+                Text("No imported sounds yet. Tap below to import audio files from the Files app.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
             }
 
             ForEach(importService.importedSounds) { sound in

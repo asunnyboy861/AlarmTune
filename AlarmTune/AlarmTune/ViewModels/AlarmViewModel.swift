@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import CoreData
+import os.log
 
 class AlarmViewModel: ObservableObject {
     @Published var alarms: [AlarmItem] = []
@@ -23,7 +24,7 @@ class AlarmViewModel: ObservableObject {
         do {
             alarms = try context.fetch(request)
         } catch {
-            print("Failed to fetch alarms: \(error.localizedDescription)")
+            AppLogger.viewModel.error("Failed to fetch alarms: \(error.localizedDescription, privacy: .public)")
         }
     }
 

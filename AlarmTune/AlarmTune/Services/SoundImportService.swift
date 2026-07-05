@@ -1,5 +1,6 @@
 import Foundation
 import UniformTypeIdentifiers
+import os.log
 
 /// 封装自定义铃声的导入/列表/删除
 /// 单例模式，与项目其他 Service 保持一致
@@ -92,7 +93,7 @@ final class SoundImportService: ObservableObject {
             refreshImportedSounds()
             return "imported:\(finalBaseName)"
         } catch {
-            print("Import failed: \(error.localizedDescription)")
+            AppLogger.importService.error("Import failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -105,7 +106,7 @@ final class SoundImportService: ObservableObject {
             refreshImportedSounds()
             return true
         } catch {
-            print("Delete failed: \(error.localizedDescription)")
+            AppLogger.importService.error("Delete failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }

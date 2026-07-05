@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import UIKit
+import os.log
 
 /// 封装自定义视频背景的导入/管理（M8.2）
 /// 单例模式，与 SoundImportService 风格一致
@@ -79,7 +80,7 @@ final class VideoImportService: ObservableObject {
             refreshImportedVideos()
             return importedVideos.first { $0.fileName == finalURL.lastPathComponent }
         } catch {
-            print("Video import failed: \(error.localizedDescription)")
+            AppLogger.importService.error("Video import failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -113,7 +114,7 @@ final class VideoImportService: ObservableObject {
             refreshImportedVideos()
             return importedVideos.first { $0.fileName == finalURL.lastPathComponent }
         } catch {
-            print("Video import failed: \(error.localizedDescription)")
+            AppLogger.importService.error("Video import failed: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -127,7 +128,7 @@ final class VideoImportService: ObservableObject {
             refreshImportedVideos()
             return true
         } catch {
-            print("Video delete failed: \(error.localizedDescription)")
+            AppLogger.importService.error("Video delete failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }

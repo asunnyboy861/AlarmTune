@@ -19,7 +19,7 @@ struct FeedbackView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 subjectSection
                 nameSection

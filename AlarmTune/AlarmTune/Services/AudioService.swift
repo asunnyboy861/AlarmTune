@@ -2,6 +2,14 @@ import Foundation
 import AVFoundation
 import UIKit
 import MediaPlayer
+import os.log
+
+/// M5 新增：音频回退原因（用于响铃 UI 提示用户）
+enum AudioFallbackReason: String {
+    case appleMusicSongMissing = "Song unavailable — using default sound"
+    case importedSoundMissing = "Imported sound unavailable — using default sound"
+    case soundFileNotFound = "Sound file not found — using default sound"
+}
 
 class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
     static let shared = AudioService()
@@ -17,6 +25,10 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     /// 标记当前播放是否因为 Apple Music 歌曲不可用而 fallback 到默认铃声
     @Published private(set) var didFallbackToDefault: Bool = false
+
+    /// M5 新增：音频回退原因（用于 UI 提示用户为何听到默认铃声）
+    /// nil 表示无回退（播放的是用户选择的声音）
+    @Published private(set) var currentFallbackReason: AudioFallbackReason?
 
     private override init() {
         super.init()
@@ -80,7 +92,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             try session.setActive(true)
             return true
         } catch {
-            print("Audio session configuration failed: \(error.localizedDescription)")
+            AppLogger.audio.error("Audio session configuration failed: \(error.localizedDescription, privacy: .public)")
             return false
         }
     }
@@ -103,6 +115,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         stopAlarm()
         beginBackgroundTask()
         didFallbackToDefault = false
+        currentFallbackReason = nil  // M5: 重置回退原因
 
         let source = AppConstants.Sound.source(for: soundName)
 
@@ -130,11 +143,23 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
 
     /// 播放本地文件（内置 + 导入），复用现有 AVAudioPlayer 逻辑
+    /// M5：文件丢失时回退到默认声音，避免静默失败
     private func playLocalSound(name: String, volume: Float, fadeIn: Bool, fadeInDuration: Double) {
         guard let soundURL = urlForSound(name) else {
-            print("Sound file not found: \(name)")
-            VolumeManager.shared.restoreSystemVolume()
-            endBackgroundTask()
+            // M5 修复：文件丢失时回退到默认声音（之前静默失败，用户漏醒）
+            // 防止递归：仅当当前不是默认声音时才回退
+            if name != AppConstants.Sound.defaultSound {
+                let reason: AudioFallbackReason = name.hasPrefix("imported:") ? .importedSoundMissing : .soundFileNotFound
+                AppLogger.audio.warning("Fallback: \(reason.rawValue, privacy: .public) — missing file: \(name, privacy: .public)")
+                didFallbackToDefault = true
+                currentFallbackReason = reason
+                playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
+            } else {
+                // 默认声音也找不到 — 极端情况，记录错误并释放资源
+                AppLogger.audio.error("Critical: default sound also missing — \(name, privacy: .public)")
+                VolumeManager.shared.restoreSystemVolume()
+                endBackgroundTask()
+            }
             return
         }
 
@@ -145,7 +170,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             isPreviewMode = false
             let prepared = audioPlayer?.prepareToPlay() ?? false
             if !prepared {
-                print("Failed to prepare audio player")
+                AppLogger.audio.warning("Failed to prepare audio player")
             }
 
             if fadeIn {
@@ -160,7 +185,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 audioPlayer?.volume = volume
                 let started = audioPlayer?.play() ?? false
                 if !started {
-                    print("Audio player failed to start playback")
+                    AppLogger.audio.warning("Audio player failed to start playback")
                 }
             }
 
@@ -169,7 +194,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 self.currentVolume = volume
             }
         } catch {
-            print("Audio playback failed: \(error.localizedDescription)")
+            AppLogger.audio.error("Audio playback failed: \(error.localizedDescription, privacy: .public)")
             VolumeManager.shared.restoreSystemVolume()
             endBackgroundTask()
         }
@@ -182,8 +207,9 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         guard identifier.hasPrefix("appleMusic:"),
               let persistentIDStr = identifier.split(separator: ":").last,
               let persistentID = UInt64(persistentIDStr) else {
-            print("Invalid Apple Music identifier: \(identifier), fallback to default")
+            AppLogger.audio.warning("Invalid Apple Music identifier: \(identifier, privacy: .public), fallback to default")
             didFallbackToDefault = true
+            currentFallbackReason = .appleMusicSongMissing  // M5: 设置回退原因
             playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
             return
         }
@@ -194,8 +220,9 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             forProperty: MPMediaItemPropertyPersistentID
         ))
         guard let items = query.items, !items.isEmpty else {
-            print("Apple Music song not found in library, fallback to default")
+            AppLogger.audio.warning("Apple Music song not found in library, fallback to default")
             didFallbackToDefault = true
+            currentFallbackReason = .appleMusicSongMissing  // M5: 设置回退原因
             playLocalSound(name: AppConstants.Sound.defaultSound, volume: volume, fadeIn: fadeIn, fadeInDuration: fadeInDuration)
             return
         }
@@ -306,7 +333,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
                 self.currentVolume = volume
             }
         } catch {
-            print("Preview playback failed: \(error.localizedDescription)")
+            AppLogger.audio.error("Preview playback failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -418,7 +445,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             let session = AVAudioSession.sharedInstance()
             try session.setActive(false, options: .notifyOthersOnDeactivation)
         } catch {
-            print("Audio session deactivation failed: \(error.localizedDescription)")
+            AppLogger.audio.error("Audio session deactivation failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

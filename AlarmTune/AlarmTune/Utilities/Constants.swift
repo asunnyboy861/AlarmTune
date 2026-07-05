@@ -232,4 +232,28 @@ enum AppConstants {
         static let cardPadding: CGFloat = 16
         static let largeCardPadding: CGFloat = 24
     }
+
+    /// M9 新增：Typography 命名空间（与 Apple HIG Type Scale 对齐）
+    /// 用于 dynamicFont(_:relativeTo:) 修饰器的语义化基准字号
+    enum Typography {
+        /// 动态字号类型（与 Apple HIG Type Scale 对齐）
+        enum Size {
+            static let largeTitle: CGFloat = 34
+            static let title: CGFloat = 28
+            static let title2: CGFloat = 22
+            static let title3: CGFloat = 20
+            static let headline: CGFloat = 17
+            static let body: CGFloat = 17
+            static let callout: CGFloat = 16
+            static let subheadline: CGFloat = 15
+            static let footnote: CGFloat = 13
+            static let caption: CGFloat = 12
+            static let caption2: CGFloat = 11
+        }
+
+        /// 闹钟时间字号（特殊场景，使用 fixedFont 不随 Dynamic Type 缩放）
+        /// 原因：闹钟时间是视觉主体，过大缩放会破坏布局
+        static let alarmTimeBaseSize: CGFloat = 48  // isPad 时 64
+        static let ringTimeBaseSize: CGFloat = 60   // isPad 时 80
+    }
 }

@@ -42,6 +42,9 @@ struct VolumeSliderView: View {
             }
             .tint(volumeColor)
             .scaleEffect(sliderScale)
+            .accessibilityLabel("Alarm volume")
+            .accessibilityValue("\(Int(volume * 100)) percent")
+            .accessibilityHint("Adjust the volume for this alarm")
             .onChange(of: volume) {
                 HapticService.shared.selection()
                 
@@ -59,6 +62,7 @@ struct VolumeSliderView: View {
                             volume = preset.value
                             lastPreviewTime = Date()
                             onPreview?(preset.value)
+                            HapticService.shared.selection()
                         } label: {
                             VStack(spacing: presetVSpacing) {
                                 Image(systemName: preset.icon)
@@ -82,6 +86,9 @@ struct VolumeSliderView: View {
                             .cornerRadius(AppConstants.Layout.cardCornerRadius)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("\(preset.name) volume")
+                        .accessibilityHint("Set volume to \(Int(preset.value * 100)) percent")
+                        .accessibilityIdentifier("volumePreset_\(preset.name)")
                     }
                 }
             }
@@ -95,6 +102,8 @@ struct VolumeSliderView: View {
                         .foregroundColor(.accentColor)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Preview volume")
+                .accessibilityHint("Play a sample at the current volume level")
             }
 
             // F2-3 修复：系统音量过低预警

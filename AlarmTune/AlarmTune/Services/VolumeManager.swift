@@ -2,6 +2,7 @@ import Foundation
 import MediaPlayer
 import AVFoundation
 import UIKit
+import os.log
 
 /// 系统音量管理器 - 负责闹钟触发时的系统音量临时调整与恢复
 /// 解决 AVAudioPlayer.volume 依赖系统音量导致闹钟听不见的问题（F2-2）
@@ -104,14 +105,45 @@ final class VolumeManager: ObservableObject {
 
     /// 通过 MPVolumeView 的 slider 设置系统音量
     /// 线程安全：强制在主线程执行
+    /// M11：带重试机制，slider 可能尚未附加到窗口或尚未完成布局
     private func setSystemVolume(_ volume: Float) {
+        setSystemVolumeWithRetry(volume, attempts: 3)
+    }
+
+    /// M11 新增：带重试的系统音量设置
+    /// slider 查找失败时延迟重试，最多 attempts 次
+    private func setSystemVolumeWithRetry(_ volume: Float, attempts: Int) {
         DispatchQueue.main.async { [weak self] in
-            guard let self = self,
-                  let slider = self.volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider else {
-                print("[VolumeManager] Warning: Unable to set system volume — MPVolumeView slider not found")
+            guard let self = self else { return }
+
+            // 确保 volumeView 已附加到窗口（可能因场景切换被移除）
+            self.ensureVolumeViewAttached()
+
+            if let slider = self.volumeView.subviews.first(where: { $0 is UISlider }) as? UISlider {
+                slider.value = volume
                 return
             }
-            slider.value = volume
+
+            // slider 未找到
+            if attempts > 1 {
+                // 延迟重试（slider 可能尚未完成布局）
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    self?.setSystemVolumeWithRetry(volume, attempts: attempts - 1)
+                }
+            } else {
+                // 重试耗尽 — 记录警告，闹钟仍可通过 AVAudioPlayer.volume 播放（不依赖系统音量）
+                AppLogger.volume.warning("Unable to set system volume after retries — MPVolumeView slider not found")
+            }
         }
+    }
+
+    /// M11 新增：确保 volumeView 已附加到当前窗口场景
+    /// 场景切换或 App 重新激活后，volumeView 可能需要重新附加
+    private func ensureVolumeViewAttached() {
+        if volumeView.superview != nil { return }
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else { return }
+        window.addSubview(volumeView)
+        volumeView.frame = CGRect(x: -1000, y: -1000, width: 100, height: 100)
     }
 }

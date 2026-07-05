@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import AVKit
+import os.log
 
 /// 视频背景选择器（M8.2，独立页面）
 ///
@@ -24,6 +25,8 @@ struct VideoBackgroundPickerView: View {
     @State private var pickedVideoURL: URL?
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showPaywall = false
+    @State private var showImportError = false  // M12 新增：视频导入失败提示
+    @State private var isImporting = false      // M12 新增：视频导入进度指示
 
     // V2 预览状态
     @State private var previewingVideoId: String? = nil
@@ -67,8 +70,13 @@ struct VideoBackgroundPickerView: View {
                         sourceURL: url,
                         onTrimmed: { trimmedURL in
                             Task {
-                                if let imported = await VideoImportService.shared.importVideoAsync(from: trimmedURL) {
+                                isImporting = true
+                                let imported = await VideoImportService.shared.importVideoAsync(from: trimmedURL)
+                                isImporting = false
+                                if let imported = imported {
                                     selectedVideo = imported.id
+                                } else {
+                                    showImportError = true
                                 }
                                 VideoImportService.shared.refreshImportedVideos()
                                 pickedVideoURL = nil
@@ -82,6 +90,26 @@ struct VideoBackgroundPickerView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
+            }
+            .alert("Import Failed", isPresented: $showImportError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Failed to import video. Please try a different video or check available storage.")
+            }
+            .overlay {
+                if isImporting {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                        Text("Importing video...")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                    .padding(32)
+                    .background(Color.black.opacity(0.7))
+                    .cornerRadius(AppConstants.Layout.largeCardCornerRadius)
+                }
             }
             .onAppear {
                 videoService.generateThumbnails()
@@ -198,6 +226,14 @@ struct VideoBackgroundPickerView: View {
                 Text("My Videos")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.secondary)
+            }
+
+            // M12 新增：空状态说明
+            if importService.importedVideos.isEmpty {
+                Text("No imported videos yet. Tap below to import a video from Photos or Files.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
             }
 
             ForEach(importService.importedVideos) { video in
@@ -355,7 +391,7 @@ struct VideoBackgroundPickerView: View {
                     }
                 }
             } catch {
-                print("Photo selection failed: \(error.localizedDescription)")
+                AppLogger.video.error("Photo selection failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }

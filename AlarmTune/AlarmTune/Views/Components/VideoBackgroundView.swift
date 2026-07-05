@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import os.log
 
 /// 响铃界面的视频背景播放组件（M8.2）
 ///
@@ -30,7 +31,7 @@ struct VideoBackgroundView: View {
 
     private func setupPlayer() {
         guard let url = resolvedURL else {
-            print("VideoBackgroundView: URL not found for \(videoName)")
+            AppLogger.video.error("VideoBackgroundView: URL not found for \(videoName, privacy: .public)")
             return
         }
 
@@ -39,14 +40,12 @@ struct VideoBackgroundView: View {
 
         // W1/W3：根据 audioSource 决定音频播放策略
         // - alarmSound 模式：视频静音（闹钟铃声由 AudioService 播放）
-        // - videoSound 模式：按 videoVolume 播放视频原声（闹钟铃声不播放）
+        // - videoSound 模式：视频原声播放（闹钟铃声不播放）
+        //   注意：AVPlayer.volume 在 iOS 上无效（仅 macOS），视频音量实际由
+        //   AlarmScheduler 通过 VolumeManager.boostSystemVolume(to: videoVolume) 控制
         if audioSource == .videoSound {
-            // 视频原声模式：使用 videoVolume 控制音量（默认 0.7 保证有声音）
-            let effectiveVolume = videoVolume > 0 ? videoVolume : 0.7
             queuePlayer.isMuted = false
-            queuePlayer.volume = effectiveVolume
         } else {
-            // 闹钟铃声模式：视频静音
             queuePlayer.isMuted = true
         }
 

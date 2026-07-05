@@ -1,5 +1,6 @@
 import Foundation
 import CoreData
+import os.log
 
 class PersistenceController {
     static let shared = PersistenceController()
@@ -14,14 +15,44 @@ class PersistenceController {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
 
-        container.loadPersistentStores { _, error in
+        container.loadPersistentStores { [weak self] _, error in
             if let error = error {
-                fatalError("CoreData failed to load: \(error.localizedDescription)")
+                // M8 修复：fatalError 改为优雅降级（之前数据库损坏时 App 启动即崩溃）
+                AppLogger.persistence.error("Failed to load persistent store: \(error.localizedDescription, privacy: .public)")
+                self?.recoverFromStoreCorruption()
             }
         }
 
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+    }
+
+    /// M8 新增：从存储损坏中恢复 — 删除损坏的存储文件并重建空存储
+    /// 用户会丢失闹钟数据，但 App 仍可启动使用（优于崩溃无法打开）
+    private func recoverFromStoreCorruption() {
+        guard let storeDescription = container.persistentStoreDescriptions.first,
+              let storeURL = storeDescription.url else {
+            AppLogger.persistence.error("No store URL found for recovery")
+            return
+        }
+
+        do {
+            try container.persistentStoreCoordinator.destroyPersistentStore(
+                at: storeURL,
+                ofType: NSSQLiteStoreType
+            )
+            AppLogger.persistence.info("Corrupted store deleted, attempting reload")
+
+            container.loadPersistentStores { _, error in
+                if let error = error {
+                    AppLogger.persistence.error("Reload failed: \(error.localizedDescription, privacy: .public). App will run with empty store.")
+                } else {
+                    AppLogger.persistence.info("Store reloaded successfully")
+                }
+            }
+        } catch {
+            AppLogger.persistence.error("Recovery failed: \(error.localizedDescription, privacy: .public). App will run with empty store.")
+        }
     }
 
     var viewContext: NSManagedObjectContext {
@@ -33,7 +64,7 @@ class PersistenceController {
         do {
             try viewContext.save()
         } catch {
-            print("CoreData save failed: \(error.localizedDescription)")
+            AppLogger.persistence.error("CoreData save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 

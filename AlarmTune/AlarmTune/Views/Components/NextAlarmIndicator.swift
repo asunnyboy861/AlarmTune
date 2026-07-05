@@ -11,7 +11,7 @@ struct NextAlarmIndicator: View {
                 .foregroundColor(.accentColor)
 
             Text(text)
-                .font(.system(size: textFontSize))
+                .dynamicFont(textFontSize)
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal, indicatorPaddingHorizontal)

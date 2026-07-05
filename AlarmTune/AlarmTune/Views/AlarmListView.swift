@@ -34,6 +34,8 @@ struct AlarmListView: View {
                             .font(.system(size: toolbarIconSize))
                     }
                     .accessibilityIdentifier("settingsButton")
+                    .accessibilityLabel("Settings")
+                    .accessibilityHint("Open app settings")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -46,6 +48,8 @@ struct AlarmListView: View {
                             .font(.system(size: toolbarIconSize))
                     }
                     .accessibilityIdentifier("addAlarmToolbarButton")
+                    .accessibilityLabel("Add Alarm")
+                    .accessibilityHint("Create a new alarm")
                 }
             }
             .sheet(isPresented: $showingAddAlarm) {

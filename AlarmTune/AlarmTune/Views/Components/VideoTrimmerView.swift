@@ -1,5 +1,6 @@
 import SwiftUI
 import AVKit
+import os.log
 
 /// 视频截取组件（M8.2 MVP）
 ///
@@ -47,7 +48,7 @@ struct VideoTrimmerView: UIViewControllerRepresentable {
         }
 
         func videoEditorController(_ editor: UIVideoEditorController, didFailWithError error: Error) {
-            print("Video editing failed: \(error.localizedDescription)")
+            AppLogger.video.error("Video editing failed: \(error.localizedDescription, privacy: .public)")
             editor.dismiss(animated: true) {
                 self.parent.onCancel()
             }

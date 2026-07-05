@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var showTerms = false
     @State private var showSupport = false
     @State private var showPaywall = false
+    @State private var showRestoreSuccess = false
     // F2-3 修复：使用 @ObservedObject 绑定共享单例
     @ObservedObject private var volumeMonitor = VolumeMonitor.shared
     @ObservedObject private var themeManager = ThemeManager.shared
@@ -108,12 +109,6 @@ struct SettingsView: View {
                     Spacer()
                 }
                 .padding(.vertical, isPad ? 8 : 4)
-
-                Button {
-                    Task { await subscriptionService.restorePurchases() }
-                } label: {
-                    Label("Restore Purchases", systemImage: "arrow.clockwise")
-                }
             } else {
                 // 免费用户显示升级入口
                 Button {
@@ -143,6 +138,28 @@ struct SettingsView: View {
                     .padding(.vertical, isPad ? 8 : 4)
                 }
                 .buttonStyle(.plain)
+            }
+
+            // M12 修复：Restore Purchases 始终可见（之前仅 Premium 用户可见）
+            // 用户可能重新安装 App 或切换设备后需要恢复购买，免费用户也需要此入口
+            Button {
+                Task {
+                    await subscriptionService.restorePurchases()
+                    showRestoreSuccess = true
+                }
+            } label: {
+                Label("Restore Purchases", systemImage: "arrow.clockwise")
+            }
+            .alert("Purchases Restored", isPresented: $showRestoreSuccess) {
+                Button("OK") {
+                    subscriptionService.errorMessage = nil
+                }
+            } message: {
+                Text(subscriptionService.errorMessage != nil
+                    ? subscriptionService.errorMessage ?? "Restore failed. Please try again."
+                    : (subscriptionService.isPremium
+                        ? "Your premium subscription has been restored."
+                        : "No previous purchases found to restore."))
             }
         } header: {
             Text("Premium")

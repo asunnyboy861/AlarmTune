@@ -33,6 +33,8 @@ struct SoundRow: View {
                         .foregroundColor(.accentColor.opacity(0.7))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Preview sound")
+                .accessibilityHint("Play a sample of \(name)")
             }
             .padding(.vertical, isPad ? 14 : 8)
             .padding(.horizontal, isPad ? 16 : 12)

@@ -1,5 +1,6 @@
 import Foundation
 import StoreKit
+import os.log
 
 /// Premium 订阅服务（StoreKit 2 封装）
 /// 单例模式，与项目其他 Service 保持一致
@@ -81,7 +82,7 @@ final class SubscriptionService: ObservableObject {
                 }
             }
         } catch {
-            print("Failed to load products: \(error.localizedDescription)")
+            AppLogger.subscription.error("Failed to load products: \(error.localizedDescription, privacy: .public)")
             await MainActor.run {
                 self.didFailToLoadProducts = true
             }
@@ -173,7 +174,7 @@ final class SubscriptionService: ObservableObject {
                     await self?.updatePurchasedStatus()
                     await transaction.finish()
                 } catch {
-                    print("Transaction verification failed: \(error.localizedDescription)")
+                    AppLogger.subscription.error("Transaction verification failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }

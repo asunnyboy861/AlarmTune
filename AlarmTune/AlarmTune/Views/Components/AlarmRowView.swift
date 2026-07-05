@@ -11,7 +11,7 @@ struct AlarmRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 10) {
                     Text(alarm.formattedTime)
-                        .font(.system(size: timeFontSize, weight: .bold, design: .rounded))
+                        .fixedFont(timeFontSize, weight: .bold, design: .rounded)
                         .foregroundColor(alarm.isEnabled ? .primary : .secondary)
 
                     if !alarm.wrappedCategory.isEmpty {
@@ -23,12 +23,12 @@ struct AlarmRowView: View {
 
                 HStack(spacing: 8) {
                     Text(alarm.wrappedLabel)
-                        .font(.system(size: labelFontSize))
+                        .dynamicFont(labelFontSize)
                         .foregroundColor(.secondary)
 
                     if alarm.isFadeIn {
                         Label("Fade In", systemImage: "waveform.path")
-                            .font(.system(size: tagFontSize))
+                            .dynamicFont(tagFontSize)
                             .foregroundColor(.accentColor)
                     }
                 }
@@ -50,7 +50,7 @@ struct AlarmRowView: View {
                 .scaleEffect(toggleScale)
 
                 Text("\(alarm.volumePercentage)%")
-                    .font(.system(size: volumeFontSize, weight: .semibold))
+                    .dynamicFont(volumeFontSize, weight: .semibold)
                     .foregroundColor(.secondary)
             }
         }
@@ -111,7 +111,7 @@ struct AlarmRowView: View {
                 HStack(spacing: 2) {
                     ForEach(0..<7, id: \.self) { index in
                         Text(AppConstants.DayPicker.daySymbols[index])
-                            .font(.system(size: repeatDayFontSize, weight: days.contains(index) ? .bold : .regular))
+                            .dynamicFont(repeatDayFontSize, weight: days.contains(index) ? .bold : .regular)
                             .foregroundColor(days.contains(index) ? .accentColor : .gray.opacity(0.4))
                     }
                 }

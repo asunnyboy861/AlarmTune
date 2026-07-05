@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import os.log
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
@@ -20,7 +21,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        AudioService.shared.configureAudioSession()
+        // M3 修改：仅在有闹钟即将响铃或正在响铃时保持音频会话
+        // 无闹钟响铃时，释放音频会话避免影响用户音乐播放
+        if !AudioService.shared.isPlaying {
+            try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        }
     }
 
     private func configureAudioSession() {
@@ -29,7 +34,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             try session.setCategory(.playback, mode: .default, options: [.duckOthers])
             try session.setActive(true)
         } catch {
-            print("Initial audio session configuration failed: \(error.localizedDescription)")
+            AppLogger.app.error("Initial audio session configuration failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

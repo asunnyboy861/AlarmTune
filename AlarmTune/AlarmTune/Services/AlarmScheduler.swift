@@ -1,6 +1,7 @@
 import Foundation
 import CoreData
 import UserNotifications
+import os.log
 import AudioToolbox
 
 class AlarmScheduler: NSObject {
@@ -16,7 +17,7 @@ class AlarmScheduler: NSObject {
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
         notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error {
-                print("Notification authorization error: \(error.localizedDescription)")
+                AppLogger.alarm.error("Notification authorization error: \(error.localizedDescription, privacy: .public)")
             }
             DispatchQueue.main.async {
                 completion(granted)
@@ -61,6 +62,7 @@ class AlarmScheduler: NSObject {
             "soundName": effectiveSoundName,
             "videoBackgroundName": videoBackgroundName,
             "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,  // W1
+            "videoVolume": alarm.videoVolume,  // M4 新增：Video Sound 模式需要传递视频音量
             "isFadeIn": alarm.isFadeIn,
             "fadeInDuration": alarm.fadeInDuration,
             "isVibrate": alarm.isVibrate,
@@ -144,7 +146,7 @@ class AlarmScheduler: NSObject {
 
         notificationCenter.add(request) { error in
             if let error = error {
-                print("Failed to schedule one-time alarm: \(error.localizedDescription)")
+                AppLogger.alarm.error("Failed to schedule one-time alarm: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -167,7 +169,7 @@ class AlarmScheduler: NSObject {
 
             notificationCenter.add(request) { error in
                 if let error = error {
-                    print("Failed to schedule repeating alarm for day \(day): \(error.localizedDescription)")
+                    AppLogger.alarm.error("Failed to schedule repeating alarm for day \(day): \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -186,6 +188,7 @@ class AlarmScheduler: NSObject {
             "soundName": alarm.wrappedSoundName,
             "videoBackgroundName": alarm.videoBackgroundName ?? "",
             "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,  // W1
+            "videoVolume": alarm.videoVolume,  // M4 新增：Video Sound 模式需要传递视频音量
             "isFadeIn": false,
             "fadeInDuration": 0.0,
             "isVibrate": alarm.isVibrate,
@@ -207,7 +210,7 @@ class AlarmScheduler: NSObject {
 
         notificationCenter.add(request) { error in
             if let error = error {
-                print("Failed to schedule snooze: \(error.localizedDescription)")
+                AppLogger.alarm.error("Failed to schedule snooze: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -279,46 +282,60 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         switch response.actionIdentifier {
         case "STOP_ACTION":
             AudioService.shared.stopAlarm()
-            // P1 fix: 一次性闹钟从通知停止后自动禁用，与 Apple Clock App 行为一致
-            if let alarmId = userInfo["alarmId"] as? String {
-                let context = PersistenceController.shared.viewContext
-                let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
-                fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
-                if let alarm = try? context.fetch(fetchRequest).first {
-                    let repeatDays = alarm.repeatDays ?? []
-                    if repeatDays.isEmpty {
-                        alarm.isEnabled = false
-                        try? context.save()
-                    }
-                }
-            }
+            handleStopAction(userInfo: userInfo)
             NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 
         case "SNOOZE_ACTION":
             AudioService.shared.fadeOutAndStop()
-            // P1 fix: 仅在 snooze 实际调度成功后才发通知，避免用户以为已 snooze 但无后续闹钟
-            if let snoozeDuration = userInfo["snoozeDuration"] as? Int,
-               let alarmId = userInfo["alarmId"] as? String {
-                let context = PersistenceController.shared.viewContext
-                let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
-                fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
-                if let alarm = try? context.fetch(fetchRequest).first {
-                    AlarmScheduler.shared.scheduleSnooze(for: alarm, minutes: snoozeDuration)
-                    NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
-                }
-            } else {
-                // 无法获取 snooze 信息，仍发通知以关闭响铃界面
-                NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
-            }
+            handleSnoozeAction(userInfo: userInfo)
 
         case UNNotificationDefaultActionIdentifier:
+            // 用户点击通知体 → 打开响铃 UI
             handleAlarmNotification(userInfo: userInfo)
+
+        case UNNotificationDismissActionIdentifier:
+            // M3 新增：处理用户划走通知（之前 default: break，导致一次性闹钟不自动禁用）
+            // 复用 STOP_ACTION 逻辑：停止音频 + 自动禁用一次性闹钟
+            AudioService.shared.stopAlarm()
+            handleStopAction(userInfo: userInfo)
+            NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 
         default:
             break
         }
 
         completionHandler()
+    }
+
+    /// M3 提取：一次性闹钟自动禁用逻辑（原内联在 STOP_ACTION 中，dismiss action 也复用）
+    /// 重复闹钟不受影响，仅一次性闹钟（repeatDays 为空）触发后自动禁用
+    private func handleStopAction(userInfo: [AnyHashable: Any]) {
+        guard let alarmId = userInfo["alarmId"] as? String else { return }
+        let context = PersistenceController.shared.viewContext
+        let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+        fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
+        guard let alarm = try? context.fetch(fetchRequest).first else { return }
+        let repeatDays = alarm.repeatDays ?? []
+        if repeatDays.isEmpty {
+            alarm.isEnabled = false
+            try? context.save()
+        }
+    }
+
+    /// M3 提取：snooze 调度逻辑（原内联在 SNOOZE_ACTION 中）
+    private func handleSnoozeAction(userInfo: [AnyHashable: Any]) {
+        guard let snoozeDuration = userInfo["snoozeDuration"] as? Int,
+              let alarmId = userInfo["alarmId"] as? String else {
+            NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
+            return
+        }
+        let context = PersistenceController.shared.viewContext
+        let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+        fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
+        if let alarm = try? context.fetch(fetchRequest).first {
+            AlarmScheduler.shared.scheduleSnooze(for: alarm, minutes: snoozeDuration)
+        }
+        NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
     }
 
     private func handleAlarmNotification(userInfo: [AnyHashable: Any]) {
@@ -330,7 +347,13 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
 
         // W1/W3：视频原声模式下不播放闹钟铃声，由 VideoBackgroundView 播放视频自带音轨
         let audioSource = userInfo["audioSource"] as? String ?? AppConstants.Alarm.defaultAudioSource
-        if audioSource != AppConstants.AudioSource.videoSound.rawValue {
+        if audioSource == AppConstants.AudioSource.videoSound.rawValue {
+            // M4 修复：Video Sound 模式也需提升系统音量，否则低系统音量时视频音频不可听
+            // VolumeManager.boostSystemVolume(to:) 用于 MPMusicPlayerController/AVPlayer 场景
+            // （iOS 不支持 player.volume 独立控制，需通过系统音量控制）
+            let videoVolume = userInfo["videoVolume"] as? Float ?? volume
+            VolumeManager.shared.boostSystemVolume(to: videoVolume)
+        } else {
             AudioService.shared.playAlarm(
                 soundName: soundName,
                 volume: volume,

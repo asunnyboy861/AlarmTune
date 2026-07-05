@@ -16,17 +16,17 @@ struct EmptyStateView: View {
 
             VStack(spacing: 12) {
                 Text("No Alarms Yet")
-                    .font(.system(size: titleSize, weight: .semibold))
+                    .dynamicFont(titleSize, weight: .semibold)
 
                 Text("Wake up your way — set your own volume for each alarm")
-                    .font(.system(size: subtitleSize))
+                    .dynamicFont(subtitleSize)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             Button(action: onAdd) {
                 Label("Add Alarm", systemImage: "plus.circle.fill")
-                    .font(.system(size: buttonFontSize, weight: .semibold))
+                    .dynamicFont(buttonFontSize, weight: .semibold)
                     .frame(maxWidth: buttonMaxWidth)
                     .padding(.vertical, buttonPaddingVertical)
                     .background(Color.accentColor)
@@ -34,6 +34,8 @@ struct EmptyStateView: View {
                     .cornerRadius(AppConstants.Layout.largeCardCornerRadius)
             }
             .accessibilityIdentifier("addAlarmEmptyButton")
+            .accessibilityLabel("Add Alarm")
+            .accessibilityHint("Create a new alarm")
             .padding(.horizontal, 40)
 
             Spacer()

@@ -90,10 +90,9 @@ struct AlarmPreviewView: View {
             let item = AVPlayerItem(url: url)
             let queuePlayer = AVQueuePlayer(playerItem: item)
             // W1/W3：根据 audioSource 决定是否播放视频原声
+            // 注意：AVPlayer.volume 在 iOS 上无效，预览时视频原声以系统音量播放
             if audioSource == .videoSound {
-                let effectiveVolume = videoVolume > 0 ? videoVolume : 0.7
                 queuePlayer.isMuted = false
-                queuePlayer.volume = effectiveVolume
             } else {
                 queuePlayer.isMuted = true
             }

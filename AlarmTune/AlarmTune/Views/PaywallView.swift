@@ -220,25 +220,74 @@ struct PaywallView: View {
 
     // MARK: - Restore
 
+    @State private var showRestoreSuccess = false
+    @State private var showRestoreFailure = false
+
     private var restoreButton: some View {
         Button {
-            Task { await subscriptionService.restorePurchases() }
+            Task {
+                await subscriptionService.restorePurchases()
+                if subscriptionService.errorMessage != nil {
+                    showRestoreFailure = true
+                } else {
+                    showRestoreSuccess = true
+                }
+            }
         } label: {
             Text("Restore Purchases")
                 .font(.system(size: isPad ? 16 : 14))
                 .foregroundColor(.accentColor)
         }
         .disabled(subscriptionService.isPurchasing)
+        .alert("Purchases Restored", isPresented: $showRestoreSuccess) {
+            Button("OK") { if subscriptionService.isPremium { dismiss() } }
+        } message: {
+            Text(subscriptionService.isPremium
+                ? "Your premium subscription has been restored successfully."
+                : "No previous purchases found to restore.")
+        }
+        .alert("Restore Failed", isPresented: $showRestoreFailure) {
+            Button("OK", role: .cancel) {
+                subscriptionService.errorMessage = nil
+            }
+        } message: {
+            Text(subscriptionService.errorMessage ?? "Could not restore purchases. Please try again later.")
+        }
     }
 
     // MARK: - Legal
 
     private var legalText: some View {
-        Text("Subscription auto-renews unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions.")
-            .font(.system(size: isPad ? 13 : 11))
+        VStack(spacing: 8) {
+            Text("Subscription auto-renews unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions.")
+                .font(.system(size: isPad ? 13 : 11))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+
+            // M12: 明确订阅条款披露（价格/周期/取消）
+            // 价格从 StoreKit Product 动态获取，避免与 App Store Connect 不同步
+            VStack(spacing: 4) {
+                if subscriptionService.products.isEmpty {
+                    // DEBUG 或商品加载中：使用占位价格
+                    Text("Monthly: \(SubscriptionService.ProductID.monthly.priceDescription), auto-renews monthly")
+                    Text("Yearly: \(SubscriptionService.ProductID.yearly.priceDescription), auto-renews yearly")
+                } else {
+                    ForEach(subscriptionService.products, id: \.id) { product in
+                        let period = product.id == SubscriptionService.ProductID.yearly.rawValue ? "year" : "month"
+                        Text("\(product.displayName): \(product.displayPrice)/\(period), auto-renews \(period)ly")
+                    }
+                }
+                Text("Cancel anytime in Settings")
+            }
+            .font(.system(size: isPad ? 11 : 10))
             .foregroundColor(.secondary)
             .multilineTextAlignment(.center)
-            .padding(.horizontal)
+
+            // M1: 法律链接（App Store Guideline 3.1.2 合规）
+            LegalLinksView()
+                .padding(.top, 4)
+        }
     }
 
     // MARK: - Layout

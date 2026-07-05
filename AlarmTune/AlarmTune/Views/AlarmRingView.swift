@@ -37,33 +37,39 @@ struct AlarmRingView: View {
                 Spacer()
 
                 Text(currentTime.formattedTime)
-                    .font(.system(size: timeFontSize, weight: .bold, design: .rounded))
+                    .fixedFont(timeFontSize, weight: .bold, design: .rounded)
                     .foregroundColor(.white)
+                    .accessibilityLabel("Current time: \(currentTime.formattedTime)")
 
                 if let alarm = viewModel.ringingAlarm {
                     Text(alarm.wrappedLabel)
-                        .font(.system(size: labelFontSize))
+                        .dynamicFont(labelFontSize)
                         .foregroundColor(.white.opacity(0.9))
+                        .accessibilityLabel("Alarm: \(alarm.wrappedLabel)")
 
                     HStack(spacing: 4) {
                         Image(systemName: alarm.volumeIcon)
                             .font(.system(size: volumeIconSize))
                         Text("\(alarm.volumePercentage)%")
-                            .font(.system(size: volumeIconSize, weight: .semibold))
+                            .dynamicFont(volumeIconSize, weight: .semibold)
                     }
                     .foregroundColor(.white.opacity(0.8))
+                    .accessibilityLabel("Volume: \(alarm.volumePercentage) percent")
 
-                    // Apple Music 歌曲不可用时提示用户（仅在实际 fallback 时显示）
-                    if audioService.didFallbackToDefault {
-                        Text("Song unavailable — using default sound")
-                            .font(.system(size: isPad ? 13 : 11))
+                    // M5：音频回退提示（显示具体原因，仅在实际 fallback 时显示）
+                    if audioService.didFallbackToDefault,
+                       let reason = audioService.currentFallbackReason {
+                        Text(reason.rawValue)
+                            .dynamicFont(isPad ? 13 : 11)
                             .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
 
                     // F2-5 新增：显示系统音量已被临时调高的提示
                     if volumeManager.isAlarmActive {
                         Text("System volume boosted for alarm")
-                            .font(.system(size: isPad ? 13 : 11))
+                            .dynamicFont(isPad ? 13 : 11)
                             .foregroundColor(.white.opacity(0.5))
                     }
                 }
@@ -93,13 +99,15 @@ struct AlarmRingView: View {
                             HapticService.shared.medium()
                         } label: {
                             Text("Snooze for \(viewModel.ringingAlarm?.snoozeDuration ?? 5) min")
-                                .font(.system(size: buttonFontSize, weight: .semibold))
+                                .dynamicFont(buttonFontSize, weight: .semibold)
                                 .frame(maxWidth: buttonMaxWidth)
                                 .padding(.vertical, buttonPaddingVertical)
                                 .background(Color.white.opacity(0.2))
                                 .foregroundColor(.white)
                                 .cornerRadius(AppConstants.Layout.largeCardCornerRadius)
                         }
+                        .accessibilityLabel("Snooze for \(viewModel.ringingAlarm?.snoozeDuration ?? 5) minutes")
+                        .accessibilityHint("Snooze the alarm temporarily")
                     }
 
                     Button {
@@ -107,13 +115,15 @@ struct AlarmRingView: View {
                         HapticService.shared.heavy()
                     } label: {
                         Text("Stop")
-                            .font(.system(size: buttonFontSize, weight: .semibold))
+                            .dynamicFont(buttonFontSize, weight: .semibold)
                             .frame(maxWidth: buttonMaxWidth)
                             .padding(.vertical, buttonPaddingVertical)
                             .background(Color.red)
                             .foregroundColor(.white)
                             .cornerRadius(AppConstants.Layout.largeCardCornerRadius)
                     }
+                    .accessibilityLabel("Stop alarm")
+                    .accessibilityHint("Stop the ringing alarm")
                 }
                 .padding(.horizontal, 40)
                 .padding(.bottom, 60)
