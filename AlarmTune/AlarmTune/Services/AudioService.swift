@@ -97,6 +97,21 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
 
+    /// W6：为视频闹钟准备 AudioSession + Background Task
+    /// videoSound 模式下 AVPlayer 由 VideoBackgroundView 控制，
+    /// 但 AudioSession 必须激活且需要 Background Task 防止 App 进入后台后被挂起
+    @discardableResult
+    func prepareForVideoAlarm() -> Bool {
+        beginBackgroundTask()
+        return configureAudioSession()
+    }
+
+    /// W6：停止视频闹钟时释放 Background Task
+    /// 与 stopAlarm() 配合使用，避免 videoSound 模式下 Background Task 泄漏
+    func endVideoAlarmBackgroundTask() {
+        endBackgroundTask()
+    }
+
     private func beginBackgroundTask() {
         endBackgroundTask()
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "AlarmPlayback") { [weak self] in

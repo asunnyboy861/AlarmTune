@@ -107,6 +107,7 @@ class AlarmViewModel: ObservableObject {
         }
 
         AudioService.shared.stopAlarm()
+        AudioService.shared.endVideoAlarmBackgroundTask()
         isRinging = false
         ringingAlarm = nil
         NotificationCenter.default.post(name: .alarmDidStop, object: nil)
@@ -117,6 +118,7 @@ class AlarmViewModel: ObservableObject {
     func snoozeRingingAlarm() {
         guard let alarm = ringingAlarm else { return }
         AudioService.shared.fadeOutAndStop()
+        AudioService.shared.endVideoAlarmBackgroundTask()
         AlarmScheduler.shared.scheduleSnooze(for: alarm, minutes: Int(alarm.snoozeDuration))
         isRinging = false
         ringingAlarm = nil

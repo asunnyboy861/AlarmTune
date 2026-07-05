@@ -46,11 +46,16 @@ class AlarmScheduler: NSObject {
         // M8.1：随机铃声 Shuffle 逻辑
         let effectiveSoundName = resolveShuffledSound(for: alarm)
 
-        // 通知声音策略：
-        // - 内置铃声：尝试使用实际铃声文件作为通知音（App 被杀时也能播放自定义铃声）
-        // - 导入/Apple Music：使用 .default 系统铃声兜底（自定义音频无法作为通知音）
-        // - 前台时 willPresent 回调启动 AVAudioPlayer 播放完整自定义音量
-        content.sound = notificationSound(for: effectiveSoundName)
+        // W6 修复：通知声音策略保持与闹钟模式一致
+        // - videoSound 模式：用 .defaultCritical（关键闹钟），视频原声由 VideoBackgroundView 播放
+        //   （视频文件无法作为通知音，App 未运行时只能播通知声）
+        // - alarmSound 模式：内置铃声用实际文件，导入/Apple Music 用 .default 兜底
+        // - 前台时 willPresent 回调启动 AVAudioPlayer/AVPlayer 播放完整音频
+        if alarm.wrappedAudioSource == .videoSound {
+            content.sound = .defaultCritical
+        } else {
+            content.sound = notificationSound(for: effectiveSoundName)
+        }
         content.categoryIdentifier = "ALARM_CATEGORY"
 
         // M8.2：传递 videoBackgroundName（App 被杀后台时 AlarmViewModel 恢复用）
@@ -61,8 +66,8 @@ class AlarmScheduler: NSObject {
             "volume": alarm.volume,
             "soundName": effectiveSoundName,
             "videoBackgroundName": videoBackgroundName,
-            "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,  // W1
-            "videoVolume": alarm.videoVolume,  // M4 新增：Video Sound 模式需要传递视频音量
+            "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,
+            "videoVolume": alarm.videoVolume,
             "isFadeIn": alarm.isFadeIn,
             "fadeInDuration": alarm.fadeInDuration,
             "isVibrate": alarm.isVibrate,
@@ -179,16 +184,26 @@ class AlarmScheduler: NSObject {
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = "\(alarm.wrappedLabel) (Snooze)"
-        // 贪睡通知使用与主闹钟相同的声音策略
-        content.sound = notificationSound(for: alarm.wrappedSoundName)
         content.categoryIdentifier = "ALARM_CATEGORY"
+
+        // W6 修复：snooze 必须保持与主闹钟相同的音频来源
+        // - videoSound 模式：通知声用 .defaultCritical（关键闹钟），视频原声由 VideoBackgroundView 播放
+        //   （视频文件无法作为通知音，App 未运行时只能播通知声，用户点开后才播视频）
+        // - alarmSound 模式：使用实际铃声文件作为通知音
+        let audioSource = alarm.wrappedAudioSource
+        if audioSource == .videoSound {
+            content.sound = .defaultCritical
+        } else {
+            content.sound = notificationSound(for: alarm.wrappedSoundName)
+        }
+
         content.userInfo = [
             "alarmId": alarm.wrappedId,
             "volume": alarm.volume,
             "soundName": alarm.wrappedSoundName,
             "videoBackgroundName": alarm.videoBackgroundName ?? "",
-            "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,  // W1
-            "videoVolume": alarm.videoVolume,  // M4 新增：Video Sound 模式需要传递视频音量
+            "audioSource": alarm.audioSource ?? AppConstants.Alarm.defaultAudioSource,
+            "videoVolume": alarm.videoVolume,
             "isFadeIn": false,
             "fadeInDuration": 0.0,
             "isVibrate": alarm.isVibrate,
@@ -282,11 +297,13 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         switch response.actionIdentifier {
         case "STOP_ACTION":
             AudioService.shared.stopAlarm()
+            AudioService.shared.endVideoAlarmBackgroundTask()
             handleStopAction(userInfo: userInfo)
             NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 
         case "SNOOZE_ACTION":
             AudioService.shared.fadeOutAndStop()
+            AudioService.shared.endVideoAlarmBackgroundTask()
             handleSnoozeAction(userInfo: userInfo)
 
         case UNNotificationDefaultActionIdentifier:
@@ -297,6 +314,7 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
             // M3 新增：处理用户划走通知（之前 default: break，导致一次性闹钟不自动禁用）
             // 复用 STOP_ACTION 逻辑：停止音频 + 自动禁用一次性闹钟
             AudioService.shared.stopAlarm()
+            AudioService.shared.endVideoAlarmBackgroundTask()
             handleStopAction(userInfo: userInfo)
             NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 
@@ -348,9 +366,10 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         // W1/W3：视频原声模式下不播放闹钟铃声，由 VideoBackgroundView 播放视频自带音轨
         let audioSource = userInfo["audioSource"] as? String ?? AppConstants.Alarm.defaultAudioSource
         if audioSource == AppConstants.AudioSource.videoSound.rawValue {
-            // M4 修复：Video Sound 模式也需提升系统音量，否则低系统音量时视频音频不可听
-            // VolumeManager.boostSystemVolume(to:) 用于 MPMusicPlayerController/AVPlayer 场景
-            // （iOS 不支持 player.volume 独立控制，需通过系统音量控制）
+            // W6 修复：videoSound 模式必须激活 AudioSession + 启动 Background Task
+            // 否则 snooze 后 AudioSession 处于 deactivated 状态，AVPlayer 无法出声
+            // 且 App 进入后台时 AVPlayer 会被系统挂起
+            _ = AudioService.shared.prepareForVideoAlarm()
             let videoVolume = userInfo["videoVolume"] as? Float ?? volume
             VolumeManager.shared.boostSystemVolume(to: videoVolume)
         } else {
