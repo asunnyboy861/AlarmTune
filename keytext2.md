@@ -23,7 +23,7 @@ Gradual Fade-In
 Fade-in gradually increases the alarm volume from a safe minimum to your chosen level over 1 to 30 seconds. Wake up naturally instead of being jolted awake.
 
 Video Backgrounds
-Watch a stunning video when your alarm rings. Choose from 8 cinematic backgrounds across 4 categories: Storm, Nature, City, and Cozy. Each video has its own audio track -- use the video sound or keep it silent and let your alarm sound play.
+Watch a stunning video when your alarm rings. Choose from 8 cinematic backgrounds across 4 categories: Storm, Nature, City, and Cozy. Each video plays with its own audio track. Preview videos in full before selecting.
 
 Apple Music Integration
 Pick any song from your Apple Music library as your alarm sound. Wake up to your favorite track every morning.
@@ -83,8 +83,8 @@ Download AlarmTune today and never worry about your alarm volume again.
 wake,sleep,sound,morning,reminder,snooze,bedtime,whisper,gentle,fade,video,music,ringer,preset,heavy
 
 ## What's New in This Version
-- Video Backgrounds: Watch 8 cinematic videos when your alarm rings, across 4 categories (Storm, Nature, City, Cozy). Each video has its own audio track.
-- Audio Source Selection: Choose between your alarm sound or the video's own audio when using a video background.
+- Video Backgrounds: Watch 8 cinematic videos when your alarm rings, across 4 categories (Storm, Nature, City, Cozy). Preview videos inline before selecting.
+- Video Alarm Mode: Selecting a video automatically uses its audio track. Alarm cards show "Video" badge to clearly indicate the alarm type.
 - Apple Music Integration: Wake up to any song from your Apple Music library.
 - Custom Sound Import: Import your own audio files from the Files app as alarm sounds.
 - AI Sound Generation: Generate unique alarm sounds with 4 styles -- Calm, Energetic, Nature, and Retro.
@@ -98,8 +98,8 @@ wake,sleep,sound,morning,reminder,snooze,bedtime,whisper,gentle,fade,video,music
 This update adds video backgrounds, Apple Music integration, custom sound/video imports, AI sound generation, a premium subscription, and accessibility support.
 
 Key technical details:
-1. Video Backgrounds: 8 built-in CC0-licensed MP4 videos bundled in the app, organized into 4 categories (Storm, Nature, City, Cozy). Videos are stored in the app bundle and played via AVQueuePlayer with loop support.
-2. Audio Source Selection: Users can choose between "Alarm Sound" (video plays silent, alarm sound plays) or "Video Sound" (video plays with its own audio track, alarm sound is muted). Stored per-alarm in Core Data.
+1. Video Backgrounds: 8 built-in CC0-licensed MP4 videos bundled in the app, organized into 4 categories (Storm, Nature, City, Cozy). Videos are stored in the app bundle and played via AVQueuePlayer with loop support. Inline video preview uses AVPlayerLayer-based InlineVideoPlayer component for reliable rendering in SwiftUI card views.
+2. Video Alarm Mode: Selecting a video automatically sets the alarm to use the video's audio track (audioSource = videoSound). No manual selection needed -- video and sound are mutually exclusive alarm types (matches Alarmy competitor pattern). Alarm cards display "Video" badge (purple) or sound name (gray) to clearly indicate the alarm type. Default video volume is 55% (not 0%).
 3. Apple Music Integration: Uses MPMediaPickerController to let users select songs from their Apple Music library. Songs are referenced by persistent ID and played via MPMusicPlayerApplicationController.
 4. Custom Sound Import: Uses UIDocumentPickerViewController to import audio files from the Files app. Files are copied to the app's Documents directory and referenced by filename.
 5. Custom Video Import: Uses PhotosPicker for Photo library and UIDocumentPickerViewController for Files. Videos are trimmed via VideoTrimmerView before import.
