@@ -26,6 +26,9 @@ struct AlarmRowView: View {
                         .dynamicFont(labelFontSize)
                         .foregroundColor(.secondary)
 
+                    // W5：视频/声音模式指示器，让用户一眼看出闹钟触发方式
+                    alarmModeBadge
+
                     if alarm.isFadeIn {
                         Label("Fade In", systemImage: "waveform.path")
                             .dynamicFont(tagFontSize)
@@ -101,6 +104,32 @@ struct AlarmRowView: View {
                 RoundedRectangle(cornerRadius: 2)
                     .fill(Float(index) < alarm.volume * 5 ? Color.accentColor : Color.gray.opacity(0.2))
                     .frame(width: volumeBarWidth, height: volumeBarHeight(index))
+            }
+        }
+    }
+
+    /// W5：闹钟模式徽章 — 视频闹钟 / 声音闹钟 / 视频+声音
+    /// 参考竞品 Alarmy：卡片上明确显示闹钟触发方式
+    private var alarmModeBadge: some View {
+        Group {
+            let hasVideo = alarm.videoBackgroundName != nil
+            let isVideoSound = alarm.wrappedAudioSource == .videoSound
+
+            if hasVideo && isVideoSound {
+                // 纯视频闹钟：视频画面 + 视频原声
+                Label("Video", systemImage: "play.rectangle.fill")
+                    .dynamicFont(tagFontSize, weight: .medium)
+                    .foregroundColor(.purple)
+            } else if hasVideo && !isVideoSound {
+                // 视频+声音：视频画面（静音）+ 闹钟铃声
+                Label("Video+Sound", systemImage: "play.rectangle")
+                    .dynamicFont(tagFontSize, weight: .medium)
+                    .foregroundColor(.orange)
+            } else {
+                // 纯声音闹钟
+                Label(alarm.wrappedSoundName, systemImage: "bell.fill")
+                    .dynamicFont(tagFontSize)
+                    .foregroundColor(.secondary)
             }
         }
     }

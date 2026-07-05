@@ -36,8 +36,7 @@ struct VideoBackgroundPickerView: View {
 
     // V2 预览状态
     @State private var previewingVideoId: String? = nil
-    @State private var previewPlayer: AVQueuePlayer? = nil
-    @State private var previewLooper: AVPlayerLooper? = nil
+    @State private var previewPlayer: AVPlayer? = nil
     @State private var previewTimer: Timer? = nil
 
     @ObservedObject private var importService = VideoImportService.shared
@@ -333,33 +332,47 @@ struct VideoBackgroundPickerView: View {
     }
 
     /// 开始预览视频+铃声（5 秒自动停止）
-    /// W1 修复：根据 audioSource 模式正确预览
-    /// - alarmSound 模式：视频静音 + AudioService 播放铃声（volume 受控）
-    /// - videoSound 模式：视频原声 + 临时提升系统音量到 videoVolume（与实际闹钟触发一致）
+    /// 修复3个根因：
+    /// 1. 不调用 stopAlarm()/deactivateAudioSession 避免 session 闪烁 → PlayerRemoteXPC err=-12785
+    /// 2. 先赋值 previewPlayer 再延迟 play()，确保 SwiftUI VideoPlayer 视图已渲染
+    /// 3. 用 AVPlayer 替代 AVQueuePlayer+AVPlayerLooper，5秒预览无需循环
     private func startPreview(videoId: String) {
-        stopPreview()
+        // 1. 清理上一个预览（不 deactivate session，避免闪烁）
+        previewPlayer?.pause()
+        previewPlayer = nil
+        previewTimer?.invalidate()
+        previewTimer = nil
+        previewingVideoId = nil
+        AudioService.shared.stopPreviewOnly()
+
         previewingVideoId = videoId
+
+        // 2. 配置 AudioSession（仅首次或 session 失效时需要）
+        _ = AudioService.shared.configureAudioSession()
 
         guard let url = resolveVideoURL(videoId) else { return }
         let item = AVPlayerItem(url: url)
-        let player = AVQueuePlayer(playerItem: item)
+        let player = AVPlayer(playerItem: item)
 
         if audioSource == .videoSound {
-            // videoSound 模式：播放视频原声
             player.isMuted = false
-            // 临时提升系统音量到 videoVolume，让预览音量与实际响铃一致
-            // （AVPlayer.volume 在 iOS 上无效，视频原声实际由系统音量控制）
             VolumeManager.shared.boostSystemVolume(to: videoVolume)
         } else {
-            // alarmSound 模式：视频静音，铃声独立播放
             player.isMuted = true
-            AudioService.shared.previewSound(soundName: previewSoundName, volume: previewVolume)
         }
 
-        let looper = AVPlayerLooper(player: player, templateItem: item)
-        player.play()
+        // 3. 先赋值 previewPlayer，让 SwiftUI 创建 VideoPlayer 视图
         previewPlayer = player
-        previewLooper = looper
+
+        // 4. 延迟 play()，确保 SwiftUI 已渲染 VideoPlayer 视图
+        DispatchQueue.main.async {
+            player.play()
+        }
+
+        // 5. 播放铃声（alarmSound 模式，不重新配置 session）
+        if audioSource == .alarmSound {
+            AudioService.shared.previewSoundWithoutSessionConfig(soundName: previewSoundName, volume: previewVolume)
+        }
 
         previewTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
             self.stopPreview()
@@ -370,15 +383,12 @@ struct VideoBackgroundPickerView: View {
     private func stopPreview() {
         previewPlayer?.pause()
         previewPlayer = nil
-        previewLooper = nil
         previewTimer?.invalidate()
         previewTimer = nil
         previewingVideoId = nil
 
-        // 停止铃声预览
-        if AudioService.shared.isPlaying {
-            AudioService.shared.stopAlarm()
-        }
+        // 使用 stopPreviewOnly() 而非 stopAlarm()，避免 deactivateAudioSession 闪烁
+        AudioService.shared.stopPreviewOnly()
 
         // videoSound 模式下恢复系统音量
         if VolumeManager.shared.isAlarmActive {
@@ -429,9 +439,8 @@ struct VideoBackgroundPickerView: View {
 }
 
 /// 内置视频卡片
-/// V1：渲染首帧缩略图（降级显示图标）
-/// V2：添加预览播放按钮
-/// V3：预览时在卡片内直接播放视频（画面+声音），替代缩略图
+/// V4：用 InlineVideoPlayer 替代 SwiftUI VideoPlayer，解决 Button 内不渲染问题
+/// V4：分离卡片点击和预览按钮，不再嵌套 Button
 private struct BuiltInVideoCard: View {
     let video: VideoBackgroundInfo
     let isSelected: Bool
@@ -443,78 +452,76 @@ private struct BuiltInVideoCard: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        Button(action: onSelect) {
-            VStack(spacing: 8) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.15))
+        VStack(spacing: 8) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.15))
+                    .frame(width: cardWidth, height: cardHeight)
+
+                if isPreviewing, let player = previewPlayer {
+                    InlineVideoPlayer(player: player)
                         .frame(width: cardWidth, height: cardHeight)
-
-                    if isPreviewing, let player = previewPlayer {
-                        // V3：预览时直接在卡片内播放视频画面
-                        VideoPlayer(player: player)
-                            .frame(width: cardWidth, height: cardHeight)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .disabled(true) // 禁止用户拖动进度
-                    } else if let data = video.thumbnailData,
-                       let image = UIImage(data: data) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: cardWidth, height: cardHeight)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        Image(systemName: "play.rectangle.fill")
-                            .font(.system(size: 32))
-                            .foregroundColor(.secondary)
-                    }
-
-                    // 预览播放/停止按钮（非选中态且非预览中时显示 play；预览中显示 stop）
-                    if !isSelected {
-                        Button {
-                            onPreview()
-                            HapticService.shared.selection()
-                        } label: {
-                            Image(systemName: isPreviewing ? "stop.circle.fill" : "play.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.white)
-                                .shadow(color: .black.opacity(0.4), radius: 2)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    // 选中态覆盖
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.accentColor, lineWidth: 3)
-                            .frame(width: cardWidth, height: cardHeight)
-
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.accentColor)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                            .padding(8)
-                    }
-                }
-
-                Text(video.title)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.primary)
-
-                // W4：显示时长 + 音轨标识
-                HStack(spacing: 4) {
-                    if video.hasAudioTrack {
-                        Image(systemName: "speaker.wave.2.fill")
-                            .font(.system(size: 9))
-                            .foregroundColor(.green)
-                    }
-                    Text(video.durationText)
-                        .font(.system(size: 10))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .allowsHitTesting(false)
+                } else if let data = video.thumbnailData,
+                   let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: cardWidth, height: cardHeight)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                } else {
+                    Image(systemName: "play.rectangle.fill")
+                        .font(.system(size: 32))
                         .foregroundColor(.secondary)
                 }
+
+                // 预览播放/停止按钮（独立于卡片点击）
+                if !isSelected {
+                    Button {
+                        onPreview()
+                        HapticService.shared.selection()
+                    } label: {
+                        Image(systemName: isPreviewing ? "stop.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.white)
+                            .shadow(color: .black.opacity(0.4), radius: 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // 选中态覆盖
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.accentColor, lineWidth: 3)
+                        .frame(width: cardWidth, height: cardHeight)
+
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.accentColor)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                        .padding(8)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { onSelect() }
+
+            Text(video.title)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.primary)
+
+            // W4：显示时长 + 音轨标识
+            HStack(spacing: 4) {
+                if video.hasAudioTrack {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 9))
+                        .foregroundColor(.green)
+                }
+                Text(video.durationText)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
             }
         }
-        .buttonStyle(.plain)
     }
 
     private var cardWidth: CGFloat { horizontalSizeClass == .regular ? 160 : 130 }
@@ -522,8 +529,8 @@ private struct BuiltInVideoCard: View {
 }
 
 /// 导入视频行
-/// V2：添加预览播放按钮
-/// V3：预览时缩略图区域显示视频画面
+/// V4：用 InlineVideoPlayer 替代 SwiftUI VideoPlayer
+/// V4：分离行点击和预览按钮
 private struct ImportedVideoRow: View {
     let video: VideoImportService.ImportedVideoInfo
     let isSelected: Bool
@@ -536,65 +543,62 @@ private struct ImportedVideoRow: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: 12) {
-                // 缩略图 / 预览视频
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.2))
+        HStack(spacing: 12) {
+            // 缩略图 / 预览视频
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 56, height: 40)
+
+                if isPreviewing, let player = previewPlayer {
+                    InlineVideoPlayer(player: player)
                         .frame(width: 56, height: 40)
-
-                    if isPreviewing, let player = previewPlayer {
-                        // V3：预览时在缩略图区域播放视频
-                        VideoPlayer(player: player)
-                            .frame(width: 56, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .disabled(true)
-                    } else if let data = video.thumbnailImageData,
-                       let image = UIImage(data: data) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 56, height: 40)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    } else {
-                        Image(systemName: "video.fill")
-                            .foregroundColor(.secondary)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(video.displayName)
-                        .font(.system(size: 15))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    Text(formatFileSize(video.fileSize))
-                        .font(.system(size: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .allowsHitTesting(false)
+                } else if let data = video.thumbnailImageData,
+                   let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 56, height: 40)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else {
+                    Image(systemName: "video.fill")
                         .foregroundColor(.secondary)
                 }
-
-                Spacer()
-
-                // 预览播放按钮
-                Button {
-                    onPreview()
-                    HapticService.shared.selection()
-                } label: {
-                    Image(systemName: isPreviewing ? "stop.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundColor(.accentColor.opacity(0.7))
-                }
-                .buttonStyle(.plain)
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.accentColor)
-                        .font(.system(size: 20))
-                }
             }
-            .contentShape(Rectangle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(video.displayName)
+                    .font(.system(size: 15))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Text(formatFileSize(video.fileSize))
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            // 预览播放按钮（独立于行点击）
+            Button {
+                onPreview()
+                HapticService.shared.selection()
+            } label: {
+                Image(systemName: isPreviewing ? "stop.circle.fill" : "play.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(.accentColor.opacity(0.7))
+            }
+            .buttonStyle(.plain)
+
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 20))
+            }
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onTapGesture { onSelect() }
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
                 Label("Delete", systemImage: "trash")

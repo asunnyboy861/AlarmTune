@@ -12,8 +12,7 @@ struct AlarmPreviewView: View {
     let soundVolume: Float
     var audioSource: AppConstants.AudioSource = .alarmSound  // W1 新增
 
-    @State private var player: AVQueuePlayer?
-    @State private var looper: AVPlayerLooper?
+    @State private var player: AVPlayer?
     @State private var countdown = 5
 
     @Environment(\.dismiss) private var dismiss
@@ -23,11 +22,18 @@ struct AlarmPreviewView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // 视频预览窗口
-            VideoPlayer(player: player)
-                .frame(height: videoHeight)
-                .clipShape(RoundedRectangle(cornerRadius: AppConstants.Layout.cardCornerRadius))
-                .padding(.horizontal)
+            // 视频预览窗口（V4：用 InlineVideoPlayer 替代 VideoPlayer）
+            if let p = player {
+                InlineVideoPlayer(player: p)
+                    .frame(height: videoHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: AppConstants.Layout.cardCornerRadius))
+                    .padding(.horizontal)
+            } else {
+                RoundedRectangle(cornerRadius: AppConstants.Layout.cardCornerRadius)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(height: videoHeight)
+                    .padding(.horizontal)
+            }
 
             // 铃声信息
             HStack(spacing: 8) {
@@ -85,37 +91,38 @@ struct AlarmPreviewView: View {
     }
 
     private func startPreview() {
-        // 1. 播放视频
+        // 1. 配置 AudioSession
+        _ = AudioService.shared.configureAudioSession()
+
+        // 2. 播放视频
         if let url = resolveVideoURL() {
             let item = AVPlayerItem(url: url)
-            let queuePlayer = AVQueuePlayer(playerItem: item)
-            // W1/W3：根据 audioSource 决定是否播放视频原声
+            let avPlayer = AVPlayer(playerItem: item)
             if audioSource == .videoSound {
-                queuePlayer.isMuted = false
-                // 临时提升系统音量到 videoVolume，让预览音量与实际响铃一致
-                // （AVPlayer.volume 在 iOS 上无效，视频原声由系统音量控制）
+                avPlayer.isMuted = false
                 VolumeManager.shared.boostSystemVolume(to: videoVolume)
             } else {
-                queuePlayer.isMuted = true
+                avPlayer.isMuted = true
             }
-            looper = AVPlayerLooper(player: queuePlayer, templateItem: item)
-            queuePlayer.play()
-            player = queuePlayer
+            // 先赋值 player，让 SwiftUI VideoPlayer 视图渲染
+            player = avPlayer
+            // 延迟 play()，确保 SwiftUI 视图已创建
+            DispatchQueue.main.async {
+                avPlayer.play()
+            }
         }
 
-        // 2. 播放铃声（仅 alarmSound 模式）
+        // 3. 播放铃声（仅 alarmSound 模式，不重新配置 session）
         if audioSource != .videoSound {
-            AudioService.shared.previewSound(soundName: soundName, volume: soundVolume)
+            AudioService.shared.previewSoundWithoutSessionConfig(soundName: soundName, volume: soundVolume)
         }
     }
 
     private func stopAndDismiss() {
         player?.pause()
         player = nil
-        looper = nil
-        if AudioService.shared.isPlaying {
-            AudioService.shared.stopAlarm()
-        }
+        // 使用 stopPreviewOnly() 避免 deactivateAudioSession 闪烁
+        AudioService.shared.stopPreviewOnly()
         // videoSound 模式下恢复系统音量
         if VolumeManager.shared.isAlarmActive {
             VolumeManager.shared.restoreSystemVolume()

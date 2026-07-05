@@ -317,6 +317,49 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
     }
 
+    /// 停止预览音频但不 deactivate AudioSession
+    /// 用于视频预览切换场景，避免 session 闪烁（setActive false → true）导致 AVPlayer 中断
+    func stopPreviewOnly() {
+        guard isPreviewMode else { return }
+        audioPlayer?.stop()
+        audioPlayer = nil
+        musicPlayer?.stop()
+        musicPlayer = nil
+        fadeTimer?.invalidate()
+        fadeTimer = nil
+        isPreviewMode = false
+        DispatchQueue.main.async {
+            self.isPlaying = false
+            self.currentVolume = 0
+        }
+        // Intentionally don't deactivate audio session — caller manages session lifecycle
+    }
+
+    /// 预览铃声但不重新配置 AudioSession
+    /// 用于 AVPlayer 已在播放的场景（视频预览），
+    /// 避免 setActive(true) 中断 AVPlayer 导致 PlayerRemoteXPC err=-12785
+    func previewSoundWithoutSessionConfig(soundName: String, volume: Float) {
+        if isPreviewMode {
+            audioPlayer?.stop()
+            audioPlayer = nil
+            musicPlayer?.stop()
+            musicPlayer = nil
+            fadeTimer?.invalidate()
+            fadeTimer = nil
+            isPreviewMode = false
+        } else if isPlaying {
+            return
+        }
+
+        let source = AppConstants.Sound.source(for: soundName)
+        switch source {
+        case .builtIn, .imported:
+            previewLocalSound(name: soundName, volume: volume)
+        case .appleMusic:
+            previewAppleMusicSound(identifier: soundName, volume: volume)
+        }
+    }
+
     private func previewLocalSound(name: String, volume: Float) {
         guard let soundURL = urlForSound(name) else { return }
 

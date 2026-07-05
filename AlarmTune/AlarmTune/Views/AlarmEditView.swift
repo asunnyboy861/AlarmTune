@@ -258,14 +258,14 @@ struct AlarmEditView: View {
         } footer: {
             if videoBackgroundName != nil {
                 if audioSource == .videoSound {
-                    Text("Video plays with its own sound. Alarm sound is muted.")
+                    Text("Video Alarm mode: video plays with its own sound. Alarm sound is off.")
                         .font(.caption2)
                 } else {
-                    Text("Adjust video background volume. Set to 0% to keep video silent.")
+                    Text("Video + Sound mode: video plays silently, alarm sound plays at set volume.")
                         .font(.caption2)
                 }
             } else {
-                Text("Optional. Video plays silently in background when alarm rings.")
+                Text("Sound Alarm mode: alarm sound plays when alarm rings. Select a video to enable video alarm.")
                     .font(.caption2)
             }
         }
