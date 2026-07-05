@@ -125,8 +125,9 @@ struct VideoBackgroundPickerView: View {
 
     // MARK: - Built-in Videos
 
+    /// W4：按 VideoCategory 分组显示，与 SoundCategorySection 风格对齐
     private var builtInVideosSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles.tv")
                     .foregroundColor(.blue)
@@ -135,27 +136,55 @@ struct VideoBackgroundPickerView: View {
                     .foregroundColor(.secondary)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(videoService.builtInVideos) { video in
-                        BuiltInVideoCard(
-                            video: video,
-                            isSelected: selectedVideo == "videoBuiltIn:\(video.id)",
-                            isPreviewing: previewingVideoId == "videoBuiltIn:\(video.id)",
-                            onSelect: {
-                                stopPreview()
-                                selectedVideo = "videoBuiltIn:\(video.id)"
-                                HapticService.shared.selection()
-                                dismiss()
-                            },
-                            onPreview: {
-                                togglePreview(videoId: "videoBuiltIn:\(video.id)")
+            ForEach(VideoCategory.allCases) { category in
+                let videos = videoService.builtInVideos.filter { $0.category == category }
+                if !videos.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        // 分类标题（与 SoundCategorySection 风格一致）
+                        HStack(spacing: 6) {
+                            Image(systemName: category.icon)
+                                .foregroundColor(categoryTint(category))
+                            Text(category.displayName)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+
+                        // 水平滚动视频卡片
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(videos) { video in
+                                    BuiltInVideoCard(
+                                        video: video,
+                                        isSelected: selectedVideo == "videoBuiltIn:\(video.id)",
+                                        isPreviewing: previewingVideoId == "videoBuiltIn:\(video.id)",
+                                        onSelect: {
+                                            stopPreview()
+                                            selectedVideo = "videoBuiltIn:\(video.id)"
+                                            HapticService.shared.selection()
+                                            dismiss()
+                                        },
+                                        onPreview: {
+                                            togglePreview(videoId: "videoBuiltIn:\(video.id)")
+                                        }
+                                    )
+                                }
                             }
-                        )
+                            .padding(.horizontal, 2)
+                        }
                     }
                 }
-                .padding(.horizontal, 2)
             }
+        }
+    }
+
+    /// VideoCategory.tint 返回 String 颜色名，转为 Color
+    private func categoryTint(_ category: VideoCategory) -> Color {
+        switch category.tint {
+        case "purple": return .purple
+        case "green":  return .green
+        case "blue":   return .blue
+        case "orange": return .orange
+        default:       return .accentColor
         }
     }
 
@@ -402,6 +431,18 @@ private struct BuiltInVideoCard: View {
                 Text(video.title)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.primary)
+
+                // W4：显示时长 + 音轨标识
+                HStack(spacing: 4) {
+                    if video.hasAudioTrack {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(.green)
+                    }
+                    Text(video.durationText)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .buttonStyle(.plain)

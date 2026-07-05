@@ -244,6 +244,12 @@ struct AlarmEditView: View {
                 }
                 .pickerStyle(.segmented)
                 .accessibilityIdentifier("audioSourcePicker")
+                .onChange(of: audioSource) { _, newValue in
+                    // W1：切到 Video Sound 时，若 videoVolume 为 0 则设为默认值（避免无声）
+                    if newValue == .videoSound && videoVolume <= 0 {
+                        videoVolume = AppConstants.Alarm.defaultVolume
+                    }
+                }
             }
         } header: {
             Text("Video Background")

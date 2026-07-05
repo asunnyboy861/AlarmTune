@@ -11,27 +11,28 @@ final class VideoBackgroundService: ObservableObject {
 
     /// 内置视频背景列表
     /// W2：替换为带音轨的高质量视频，按分类组织
+    /// W4：每个视频带 duration 字段（秒），用于 UI 显示
     @Published var builtInVideos: [VideoBackgroundInfo] = [
         // Storm（戏剧性最高 — 强制唤醒）
         VideoBackgroundInfo(id: "thunder", title: "Thunder Lightning", videoName: "thunder",
-                           category: .storm, hasAudioTrack: true),
+                           category: .storm, hasAudioTrack: true, duration: 24),
         VideoBackgroundInfo(id: "oceancrash", title: "Ocean Crash", videoName: "oceancrash",
-                           category: .storm, hasAudioTrack: true),
+                           category: .storm, hasAudioTrack: true, duration: 25),
         // Nature（自然力量 — 沉浸唤醒）
         VideoBackgroundInfo(id: "waterfall", title: "Waterfall Rush", videoName: "waterfall",
-                           category: .nature, hasAudioTrack: true),
+                           category: .nature, hasAudioTrack: true, duration: 25),
         VideoBackgroundInfo(id: "forest", title: "Forest Morning", videoName: "forest",
-                           category: .nature, hasAudioTrack: true),
+                           category: .nature, hasAudioTrack: true, duration: 24),
         // City（都市节奏 — 脉冲唤醒）
         VideoBackgroundInfo(id: "citylights", title: "City Lights", videoName: "citylights",
-                           category: .city, hasAudioTrack: true),
+                           category: .city, hasAudioTrack: true, duration: 15),
         VideoBackgroundInfo(id: "rainwindow", title: "Rain Window", videoName: "rainwindow",
-                           category: .city, hasAudioTrack: true),
+                           category: .city, hasAudioTrack: true, duration: 22),
         // Cozy（治愈温馨 — 渐进唤醒）
         VideoBackgroundInfo(id: "coffeebrew", title: "Coffee Brew", videoName: "coffeebrew",
-                           category: .cozy, hasAudioTrack: true),
+                           category: .cozy, hasAudioTrack: true, duration: 14),
         VideoBackgroundInfo(id: "fireplace", title: "Fireplace Crackle", videoName: "fireplace",
-                           category: .cozy, hasAudioTrack: true),
+                           category: .cozy, hasAudioTrack: true, duration: 7),
     ]
 
     private init() {}
@@ -117,4 +118,12 @@ struct VideoBackgroundInfo: Identifiable, Hashable {
     var thumbnailData: Data?    // 懒加载缩略图
     let category: VideoCategory // W4：视频分类
     let hasAudioTrack: Bool     // W4：是否有音轨
+    let duration: TimeInterval  // W4：视频时长（秒），用于 UI 显示
+
+    /// 时长格式化为 "0:15" 形式
+    var durationText: String {
+        let mins = Int(duration) / 60
+        let secs = Int(duration) % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
 }
