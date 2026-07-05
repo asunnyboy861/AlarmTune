@@ -81,7 +81,8 @@ struct AlarmEditView: View {
                 VideoBackgroundPickerView(
                     selectedVideo: $videoBackgroundName,
                     previewSoundName: $soundName,
-                    previewVolume: $volume
+                    previewVolume: $volume,
+                    audioSource: $audioSource
                 )
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)

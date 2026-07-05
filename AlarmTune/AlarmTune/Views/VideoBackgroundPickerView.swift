@@ -20,6 +20,9 @@ struct VideoBackgroundPickerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    /// W1：音频来源绑定，选择视频后自动切换为 videoSound
+    @Binding var audioSource: AppConstants.AudioSource
+
     @State private var showDocumentPicker = false
     @State private var showTrimmer = false
     @State private var pickedVideoURL: URL?
@@ -126,8 +129,8 @@ struct VideoBackgroundPickerView: View {
         Button {
             stopPreview()
             selectedVideo = nil
+            audioSource = .alarmSound
             HapticService.shared.selection()
-            dismiss()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "nosign")
@@ -188,8 +191,11 @@ struct VideoBackgroundPickerView: View {
                                         onSelect: {
                                             stopPreview()
                                             selectedVideo = "videoBuiltIn:\(video.id)"
+                                            // 选择带音轨的视频后自动切换为 videoSound
+                                            if video.hasAudioTrack {
+                                                audioSource = .videoSound
+                                            }
                                             HapticService.shared.selection()
-                                            dismiss()
                                         },
                                         onPreview: {
                                             togglePreview(videoId: "videoBuiltIn:\(video.id)")
@@ -244,8 +250,9 @@ struct VideoBackgroundPickerView: View {
                     onSelect: {
                         stopPreview()
                         selectedVideo = video.id
+                        // 选择导入视频后默认切换为 videoSound（导入视频通常有音轨）
+                        audioSource = .videoSound
                         HapticService.shared.selection()
-                        dismiss()
                     },
                     onPreview: {
                         togglePreview(videoId: video.id)

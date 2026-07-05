@@ -191,18 +191,24 @@ final class SubscriptionService: ObservableObject {
     }
 
     /// 更新订阅状态
+    /// 使用 Transaction.currentEntitlement(for:) 直接查询单个产品
+    /// 比 Transaction.currentEntitlements 迭代更可靠：
+    /// - 迭代式可能遗漏产品或无法正确设置 isPremium = false
+    /// - 直接查询确保精确匹配每个产品 ID
     private func updatePurchasedStatus() async {
         var hasActiveSubscription = false
 
-        for await result in Transaction.currentEntitlements {
-            do {
-                let transaction = try Self.checkVerified(result)
-                if ProductID(rawValue: transaction.productID) != nil {
-                    hasActiveSubscription = true
-                    break
+        for productId in ProductID.allCases {
+            if let result = await Transaction.currentEntitlement(for: productId.rawValue) {
+                do {
+                    let transaction = try Self.checkVerified(result)
+                    if transaction.productID == productId.rawValue {
+                        hasActiveSubscription = true
+                        break
+                    }
+                } catch {
+                    continue
                 }
-            } catch {
-                continue
             }
         }
 
