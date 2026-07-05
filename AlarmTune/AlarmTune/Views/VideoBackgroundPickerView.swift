@@ -191,6 +191,7 @@ struct VideoBackgroundPickerView: View {
                                         video: video,
                                         isSelected: selectedVideo == "videoBuiltIn:\(video.id)",
                                         isPreviewing: previewingVideoId == "videoBuiltIn:\(video.id)",
+                                        previewPlayer: previewingVideoId == "videoBuiltIn:\(video.id)" ? previewPlayer : nil,
                                         onSelect: {
                                             stopPreview()
                                             selectedVideo = "videoBuiltIn:\(video.id)"
@@ -250,6 +251,7 @@ struct VideoBackgroundPickerView: View {
                     video: video,
                     isSelected: selectedVideo == video.id,
                     isPreviewing: previewingVideoId == video.id,
+                    previewPlayer: previewingVideoId == video.id ? previewPlayer : nil,
                     onSelect: {
                         stopPreview()
                         selectedVideo = video.id
@@ -429,10 +431,12 @@ struct VideoBackgroundPickerView: View {
 /// 内置视频卡片
 /// V1：渲染首帧缩略图（降级显示图标）
 /// V2：添加预览播放按钮
+/// V3：预览时在卡片内直接播放视频（画面+声音），替代缩略图
 private struct BuiltInVideoCard: View {
     let video: VideoBackgroundInfo
     let isSelected: Bool
     let isPreviewing: Bool
+    let previewPlayer: AVPlayer?
     let onSelect: () -> Void
     let onPreview: () -> Void
 
@@ -446,8 +450,13 @@ private struct BuiltInVideoCard: View {
                         .fill(Color.gray.opacity(0.15))
                         .frame(width: cardWidth, height: cardHeight)
 
-                    // V1：渲染缩略图，与 ImportedVideoRow 风格一致
-                    if let data = video.thumbnailData,
+                    if isPreviewing, let player = previewPlayer {
+                        // V3：预览时直接在卡片内播放视频画面
+                        VideoPlayer(player: player)
+                            .frame(width: cardWidth, height: cardHeight)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .disabled(true) // 禁止用户拖动进度
+                    } else if let data = video.thumbnailData,
                        let image = UIImage(data: data) {
                         Image(uiImage: image)
                             .resizable()
@@ -455,13 +464,12 @@ private struct BuiltInVideoCard: View {
                             .frame(width: cardWidth, height: cardHeight)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
-                        // 降级：无缩略图时显示图标
                         Image(systemName: "play.rectangle.fill")
                             .font(.system(size: 32))
                             .foregroundColor(.secondary)
                     }
 
-                    // V2：预览播放按钮（底部居中，非选中态显示）
+                    // 预览播放/停止按钮（非选中态且非预览中时显示 play；预览中显示 stop）
                     if !isSelected {
                         Button {
                             onPreview()
@@ -515,10 +523,12 @@ private struct BuiltInVideoCard: View {
 
 /// 导入视频行
 /// V2：添加预览播放按钮
+/// V3：预览时缩略图区域显示视频画面
 private struct ImportedVideoRow: View {
     let video: VideoImportService.ImportedVideoInfo
     let isSelected: Bool
     let isPreviewing: Bool
+    let previewPlayer: AVPlayer?
     let onSelect: () -> Void
     let onPreview: () -> Void
     let onDelete: () -> Void
@@ -528,13 +538,19 @@ private struct ImportedVideoRow: View {
     var body: some View {
         Button(action: onSelect) {
             HStack(spacing: 12) {
-                // 缩略图
+                // 缩略图 / 预览视频
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.gray.opacity(0.2))
                         .frame(width: 56, height: 40)
 
-                    if let data = video.thumbnailImageData,
+                    if isPreviewing, let player = previewPlayer {
+                        // V3：预览时在缩略图区域播放视频
+                        VideoPlayer(player: player)
+                            .frame(width: 56, height: 40)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .disabled(true)
+                    } else if let data = video.thumbnailImageData,
                        let image = UIImage(data: data) {
                         Image(uiImage: image)
                             .resizable()
@@ -559,7 +575,7 @@ private struct ImportedVideoRow: View {
 
                 Spacer()
 
-                // V2：预览播放按钮（与 SoundRow 的 play 按钮风格一致）
+                // 预览播放按钮
                 Button {
                     onPreview()
                     HapticService.shared.selection()
