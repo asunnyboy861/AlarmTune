@@ -45,7 +45,8 @@ AlarmTune is free to download and use with a generous free tier. Users can optio
   - Alarm categories and labels
   - Apple Music library integration (select songs as alarm sounds)
   - Sound Shuffle (auto-rotate built-in sounds daily or weekly)
-  - 4 built-in video backgrounds (Sunrise, Morning Coffee, Ocean Waves, Forest)
+  - 8 built-in video backgrounds across 4 categories (Storm, Nature, City, Cozy)
+  - Video alarm mode (auto uses video audio track when video selected)
   - 1 custom sound import from Files
   - 1 custom video background import from Photos or Files
   - 1 AI-generated sound (shares quota with custom sound import)
@@ -67,7 +68,8 @@ AlarmTune is free to download and use with a generous free tier. Users can optio
 | Alarm categories and labels | ✅ | ✅ |
 | Apple Music integration | ✅ | ✅ |
 | Sound Shuffle (daily/weekly) | ✅ | ✅ |
-| Built-in video backgrounds (4) | ✅ | ✅ |
+| Built-in video backgrounds (8) | ✅ | ✅ |
+| Video alarm mode (auto video audio) | ✅ | ✅ |
 | Custom sound import (from Files) | 1 file | Unlimited |
 | Custom video background import | 1 file | Unlimited |
 | AI Sound Generation (4 styles) | 1 file* | Unlimited |
