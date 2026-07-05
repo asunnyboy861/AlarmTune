@@ -90,9 +90,11 @@ struct AlarmPreviewView: View {
             let item = AVPlayerItem(url: url)
             let queuePlayer = AVQueuePlayer(playerItem: item)
             // W1/W3：根据 audioSource 决定是否播放视频原声
-            // 注意：AVPlayer.volume 在 iOS 上无效，预览时视频原声以系统音量播放
             if audioSource == .videoSound {
                 queuePlayer.isMuted = false
+                // 临时提升系统音量到 videoVolume，让预览音量与实际响铃一致
+                // （AVPlayer.volume 在 iOS 上无效，视频原声由系统音量控制）
+                VolumeManager.shared.boostSystemVolume(to: videoVolume)
             } else {
                 queuePlayer.isMuted = true
             }
@@ -113,6 +115,10 @@ struct AlarmPreviewView: View {
         looper = nil
         if AudioService.shared.isPlaying {
             AudioService.shared.stopAlarm()
+        }
+        // videoSound 模式下恢复系统音量
+        if VolumeManager.shared.isAlarmActive {
+            VolumeManager.shared.restoreSystemVolume()
         }
         dismiss()
     }

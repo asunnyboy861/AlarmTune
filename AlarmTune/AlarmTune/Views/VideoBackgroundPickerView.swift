@@ -17,6 +17,9 @@ struct VideoBackgroundPickerView: View {
     @Binding var previewSoundName: String
     @Binding var previewVolume: Float
 
+    /// W1 新增：视频音量绑定，videoSound 模式预览时使用此音量提升系统音量
+    @Binding var videoVolume: Float
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -328,26 +331,36 @@ struct VideoBackgroundPickerView: View {
     }
 
     /// 开始预览视频+铃声（5 秒自动停止）
+    /// W1 修复：根据 audioSource 模式正确预览
+    /// - alarmSound 模式：视频静音 + AudioService 播放铃声（volume 受控）
+    /// - videoSound 模式：视频原声 + 临时提升系统音量到 videoVolume（与实际闹钟触发一致）
     private func startPreview(videoId: String) {
         stopPreview()
         previewingVideoId = videoId
 
-        // 1. 播放视频（静音，铃声由 AudioService 独立播放）
         guard let url = resolveVideoURL(videoId) else { return }
         let item = AVPlayerItem(url: url)
         let player = AVQueuePlayer(playerItem: item)
-        player.isMuted = true
+
+        if audioSource == .videoSound {
+            // videoSound 模式：播放视频原声
+            player.isMuted = false
+            // 临时提升系统音量到 videoVolume，让预览音量与实际响铃一致
+            // （AVPlayer.volume 在 iOS 上无效，视频原声实际由系统音量控制）
+            VolumeManager.shared.boostSystemVolume(to: videoVolume)
+        } else {
+            // alarmSound 模式：视频静音，铃声独立播放
+            player.isMuted = true
+            AudioService.shared.previewSound(soundName: previewSoundName, volume: previewVolume)
+        }
+
         let looper = AVPlayerLooper(player: player, templateItem: item)
         player.play()
         previewPlayer = player
         previewLooper = looper
 
-        // 2. 同步播放铃声
-        AudioService.shared.previewSound(soundName: previewSoundName, volume: previewVolume)
-
-        // 3. 5 秒后自动停止
         previewTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
-            stopPreview()
+            self.stopPreview()
         }
     }
 
@@ -363,6 +376,11 @@ struct VideoBackgroundPickerView: View {
         // 停止铃声预览
         if AudioService.shared.isPlaying {
             AudioService.shared.stopAlarm()
+        }
+
+        // videoSound 模式下恢复系统音量
+        if VolumeManager.shared.isAlarmActive {
+            VolumeManager.shared.restoreSystemVolume()
         }
     }
 

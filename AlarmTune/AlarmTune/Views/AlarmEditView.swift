@@ -82,6 +82,7 @@ struct AlarmEditView: View {
                     selectedVideo: $videoBackgroundName,
                     previewSoundName: $soundName,
                     previewVolume: $volume,
+                    videoVolume: $videoVolume,
                     audioSource: $audioSource
                 )
                     .presentationDetents([.large])
