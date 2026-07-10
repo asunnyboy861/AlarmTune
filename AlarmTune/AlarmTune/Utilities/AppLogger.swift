@@ -13,4 +13,5 @@ enum AppLogger {
     static let app = Logger(subsystem: AppConstants.bundleId, category: "App")
     static let video = Logger(subsystem: AppConstants.bundleId, category: "Video")
     static let viewModel = Logger(subsystem: AppConstants.bundleId, category: "ViewModel")
+    static let backgroundKeeper = Logger(subsystem: AppConstants.bundleId, category: "BackgroundAudioKeeper")
 }

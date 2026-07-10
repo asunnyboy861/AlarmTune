@@ -226,6 +226,48 @@ enum AppConstants {
         static let storageKey = "appTheme"
     }
 
+    /// R4 新增：可靠性相关常量
+    /// 命名空间模式继承自 Alarm、Sound、Volume 等现有子命名空间
+    enum Reliability {
+        /// 后台保活开关的 UserDefaults 存储键
+        /// 命名规范继承自 shuffleModeKey（alarm*Key 模式）
+        static let backgroundKeepAliveKey = "alarmBackgroundKeepAlive"
+
+        /// 后台保活默认值：true（默认开启，优先保障闹钟可靠性）
+        static let defaultBackgroundKeepAlive: Bool = true
+
+        /// 静音模式可靠性等级（用于 R5 指示器展示）
+        enum ReliabilityLevel: String {
+            case reliable     // 后台保活开启 + 内置铃声 -> 静音模式可响
+            case partial      // 后台保活关闭 或 Apple Music 铃声 -> 仅非静音模式可响
+            case atRisk       // 系统音量为0 或 静音模式 + 无保活 -> 可能不响
+
+            var displayName: String {
+                switch self {
+                case .reliable: return "Reliable in silent mode"
+                case .partial:  return "May not ring in silent mode"
+                case .atRisk:   return "Alarm may not sound"
+                }
+            }
+
+            var icon: String {
+                switch self {
+                case .reliable: return "checkmark.shield.fill"
+                case .partial:  return "exclamationmark.shield.fill"
+                case .atRisk:   return "xmark.shield.fill"
+                }
+            }
+
+            var tint: String {
+                switch self {
+                case .reliable: return "green"
+                case .partial:  return "orange"
+                case .atRisk:   return "red"
+                }
+            }
+        }
+    }
+
     enum Layout {
         static let maxContentWidth: CGFloat = 600
         static let cardCornerRadius: CGFloat = 16

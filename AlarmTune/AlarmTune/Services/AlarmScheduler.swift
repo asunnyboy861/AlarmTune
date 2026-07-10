@@ -15,7 +15,10 @@ class AlarmScheduler: NSObject {
     }
 
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
-        notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        // R2 修改：尝试请求 .criticalAlert（闹钟是时间敏感场景，符合 Apple 审批标准）
+        // iOS 12+ 支持，若 Apple 未授权 .criticalAlert 权限，系统会自动降级忽略此选项
+        let options: UNAuthorizationOptions = [.alert, .sound, .badge, .criticalAlert]
+        notificationCenter.requestAuthorization(options: options) { granted, error in
             if let error = error {
                 AppLogger.alarm.error("Notification authorization error: \(error.localizedDescription, privacy: .public)")
             }
@@ -46,17 +49,17 @@ class AlarmScheduler: NSObject {
         // M8.1：随机铃声 Shuffle 逻辑
         let effectiveSoundName = resolveShuffledSound(for: alarm)
 
-        // W6 修复：通知声音策略保持与闹钟模式一致
-        // - videoSound 模式：用 .defaultCritical（关键闹钟），视频原声由 VideoBackgroundView 播放
-        //   （视频文件无法作为通知音，App 未运行时只能播通知声）
-        // - alarmSound 模式：内置铃声用实际文件，导入/Apple Music 用 .default 兜底
-        // - 前台时 willPresent 回调启动 AVAudioPlayer/AVPlayer 播放完整音频
-        if alarm.wrappedAudioSource == .videoSound {
-            content.sound = .defaultCritical
-        } else {
-            content.sound = notificationSound(for: effectiveSoundName)
-        }
+        // R2 修改：统一通知声音策略（消除 videoSound / alarmSound 分裂）
+        // 所有闹钟类型统一使用 .defaultCritical（关键警报声音）
+        // Apple 官方文档：Critical alerts ignore the mute switch and Do Not Disturb
+        // 无 Critical Alert 权限时，系统自动降级，不会崩溃
+        content.sound = .defaultCritical
         content.categoryIdentifier = "ALARM_CATEGORY"
+
+        // R2 新增：timeSensitive 中断级别（iOS 15+，突破 Focus 模式）
+        if #available(iOS 15.0, *) {
+            content.interruptionLevel = .timeSensitive
+        }
 
         // M8.2：传递 videoBackgroundName（App 被杀后台时 AlarmViewModel 恢复用）
         let videoBackgroundName = alarm.videoBackgroundName ?? ""
@@ -77,34 +80,9 @@ class AlarmScheduler: NSObject {
         return content
     }
 
-    /// 根据铃声名返回通知声音
-    /// 内置铃声（无前缀）：尝试查找 Bundle 中的音频文件作为通知音
-    /// 导入/Apple Music（有前缀）：使用系统默认铃声兜底
-    private func notificationSound(for soundName: String) -> UNNotificationSound {
-        // 有前缀的是导入或 Apple Music，无法作为通知音
-        guard !soundName.hasPrefix("imported:") && !soundName.hasPrefix("appleMusic:") else {
-            return .default
-        }
-
-        // 尝试在 Bundle 中查找铃声文件
-        let sanitizedName = soundName.replacingOccurrences(of: " ", with: "")
-        let extensions = ["caf", "mp3", "aiff", "wav", "m4a"]
-        let directories: [String?] = ["Sounds", nil]
-
-        for dir in directories {
-            for candidate in [sanitizedName, soundName] {
-                for ext in extensions {
-                    if Bundle.main.url(forResource: candidate, withExtension: ext, subdirectory: dir) != nil {
-                        // 通知声音文件名需包含扩展名
-                        return UNNotificationSound(named: UNNotificationSoundName("\(candidate).\(ext)"))
-                    }
-                }
-            }
-        }
-
-        // 未找到铃声文件，使用系统默认
-        return .default
-    }
+    /// R2 废弃并删除：notificationSound(for:) 方法
+    /// 原因：R2 统一使用 .defaultCritical，不再需要按铃声名查找通知音文件
+    /// 原方法查找 Bundle 中的音频文件作为自定义通知音，但现在所有闹钟统一用 .defaultCritical
 
     /// M8.1：解析 Shuffle 后的铃声名
     /// 如果开启 Shuffle 且到了更换周期，从内置铃声中随机选择一首
@@ -154,6 +132,11 @@ class AlarmScheduler: NSObject {
                 AppLogger.alarm.error("Failed to schedule one-time alarm: \(error.localizedDescription, privacy: .public)")
             }
         }
+
+        // R1 新增：后台音频保活预排程（与通知双保险）
+        if let fireDate = alarm.nextFireDate {
+            BackgroundAudioKeeper.shared.scheduleBackgroundPlayback(for: alarm, at: fireDate)
+        }
     }
 
     private func scheduleRepeatingAlarm(alarm: AlarmItem, content: UNMutableNotificationContent, repeatDays: [Int]) {
@@ -178,6 +161,11 @@ class AlarmScheduler: NSObject {
                 }
             }
         }
+
+        // R1 新增：重复闹钟取最近一次触发时间预排程
+        if let fireDate = alarm.nextFireDate {
+            BackgroundAudioKeeper.shared.scheduleBackgroundPlayback(for: alarm, at: fireDate)
+        }
     }
 
     func scheduleSnooze(for alarm: AlarmItem, minutes: Int) {
@@ -186,15 +174,12 @@ class AlarmScheduler: NSObject {
         content.body = "\(alarm.wrappedLabel) (Snooze)"
         content.categoryIdentifier = "ALARM_CATEGORY"
 
-        // W6 修复：snooze 必须保持与主闹钟相同的音频来源
-        // - videoSound 模式：通知声用 .defaultCritical（关键闹钟），视频原声由 VideoBackgroundView 播放
-        //   （视频文件无法作为通知音，App 未运行时只能播通知声，用户点开后才播视频）
-        // - alarmSound 模式：使用实际铃声文件作为通知音
-        let audioSource = alarm.wrappedAudioSource
-        if audioSource == .videoSound {
-            content.sound = .defaultCritical
-        } else {
-            content.sound = notificationSound(for: alarm.wrappedSoundName)
+        // R2 修改：snooze 同样使用统一的关键警报声音策略
+        content.sound = .defaultCritical
+
+        // R2 新增：timeSensitive 中断级别（iOS 15+，突破 Focus 模式）
+        if #available(iOS 15.0, *) {
+            content.interruptionLevel = .timeSensitive
         }
 
         content.userInfo = [
@@ -243,6 +228,9 @@ class AlarmScheduler: NSObject {
 
         notificationCenter.removePendingNotificationRequests(withIdentifiers: identifiers)
         notificationCenter.removeDeliveredNotifications(withIdentifiers: identifiers)
+
+        // R1 新增：取消后台预排程
+        BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarm.wrappedId)
     }
 
     func cancelAllAlarms() {
@@ -281,6 +269,10 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         let userInfo = notification.request.content.userInfo
+        // R1 新增：将预排程播放器移交给 AudioService，避免重复播放
+        if let alarmId = userInfo["alarmId"] as? String {
+            BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)
+        }
         handleAlarmNotification(userInfo: userInfo)
         // F2-1 修复：APP在前台时，AVAudioPlayer 已在 handleAlarmNotification 中启动，
         // 不传 .sound 避免系统通知声音与 AVAudioPlayer 同时播放
@@ -298,16 +290,26 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         case "STOP_ACTION":
             AudioService.shared.stopAlarm()
             AudioService.shared.endVideoAlarmBackgroundTask()
+            if let alarmId = userInfo["alarmId"] as? String {
+                BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
+            }
             handleStopAction(userInfo: userInfo)
             NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 
         case "SNOOZE_ACTION":
             AudioService.shared.fadeOutAndStop()
             AudioService.shared.endVideoAlarmBackgroundTask()
+            if let alarmId = userInfo["alarmId"] as? String {
+                BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
+            }
             handleSnoozeAction(userInfo: userInfo)
 
         case UNNotificationDefaultActionIdentifier:
-            // 用户点击通知体 → 打开响铃 UI
+            // 用户点击通知体 -> 打开响铃 UI
+            // R1 新增：移交预排程播放器
+            if let alarmId = userInfo["alarmId"] as? String {
+                BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)
+            }
             handleAlarmNotification(userInfo: userInfo)
 
         case UNNotificationDismissActionIdentifier:
@@ -315,6 +317,9 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
             // 复用 STOP_ACTION 逻辑：停止音频 + 自动禁用一次性闹钟
             AudioService.shared.stopAlarm()
             AudioService.shared.endVideoAlarmBackgroundTask()
+            if let alarmId = userInfo["alarmId"] as? String {
+                BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
+            }
             handleStopAction(userInfo: userInfo)
             NotificationCenter.default.post(name: .alarmDidStop, object: nil)
 

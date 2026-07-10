@@ -7,6 +7,9 @@ struct AlarmEditView: View {
 
     let alarm: AlarmItem?
 
+    // R5 新增：复用 VolumeMonitor 共享单例（继承 SettingsView 的模式）
+    @ObservedObject private var volumeMonitor = VolumeMonitor.shared
+
     @State private var hour: Int = 7
     @State private var minute: Int = 0
     @State private var label: String = "Alarm"
@@ -165,6 +168,20 @@ struct AlarmEditView: View {
                             .tint(.accentColor)
                     }
                 }
+            }
+
+            // R5 新增：可靠性指示器（仅在不可靠时显示）
+            let level = currentReliabilityLevel
+            if let message = volumeMonitor.reliabilityMessage(for: level) {
+                HStack(spacing: 8) {
+                    Image(systemName: level.icon)
+                        .foregroundColor(reliabilityColor(from: level.tint))
+                        .font(.system(size: 14))
+                    Text(message)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
             }
         } header: {
             Text("Volume")
@@ -387,5 +404,30 @@ struct AlarmEditView: View {
 
     private var labelFontSize: CGFloat {
         isPad ? 18 : 16
+    }
+
+    // MARK: - R5: Reliability Indicator
+
+    /// R5 新增：计算当前闹钟的可靠性等级
+    /// 综合后台保活开关 + 铃声来源 + 系统音量
+    private var currentReliabilityLevel: AppConstants.Reliability.ReliabilityLevel {
+        let isKeepAlive = UserDefaults.standard.object(forKey: AppConstants.Reliability.backgroundKeepAliveKey) as? Bool
+            ?? AppConstants.Reliability.defaultBackgroundKeepAlive
+        return volumeMonitor.reliabilityLevel(
+            for: volume,
+            soundName: soundName,
+            isBackgroundKeepAlive: isKeepAlive
+        )
+    }
+
+    /// R5 新增：颜色字符串转 Color（继承 SettingsView.volumeColor(from:) 模式）
+    private func reliabilityColor(from colorName: String) -> Color {
+        switch colorName {
+        case "red": return .red
+        case "orange": return .orange
+        case "green": return .green
+        case "blue": return .blue
+        default: return .secondary
+        }
     }
 }

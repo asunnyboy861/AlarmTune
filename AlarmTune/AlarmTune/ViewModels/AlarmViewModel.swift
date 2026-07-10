@@ -106,6 +106,11 @@ class AlarmViewModel: ObservableObject {
             }
         }
 
+        // R1 新增：取消后台预排程（防止闹钟停止后预排程播放器仍在）
+        if let alarmId = ringingAlarm?.wrappedId {
+            BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
+        }
+
         AudioService.shared.stopAlarm()
         AudioService.shared.endVideoAlarmBackgroundTask()
         isRinging = false
@@ -117,6 +122,10 @@ class AlarmViewModel: ObservableObject {
 
     func snoozeRingingAlarm() {
         guard let alarm = ringingAlarm else { return }
+
+        // R1 新增：取消当前预排程（snooze 会重新调度通知 + 预排程）
+        BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarm.wrappedId)
+
         AudioService.shared.fadeOutAndStop()
         AudioService.shared.endVideoAlarmBackgroundTask()
         AlarmScheduler.shared.scheduleSnooze(for: alarm, minutes: Int(alarm.snoozeDuration))

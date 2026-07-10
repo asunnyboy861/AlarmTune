@@ -22,6 +22,7 @@ struct SettingsView: View {
                 premiumSection
                 themeSection
                 alarmShuffleSection
+                alarmReliabilitySection
                 supportSection
                 legalSection
                 aboutSection
@@ -50,6 +51,45 @@ struct SettingsView: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
+        }
+    }
+
+    /// R4 新增：闹钟可靠性设置 Section
+    /// 继承 alarmShuffleSection 的 Section + footer 模式
+    private var alarmReliabilitySection: some View {
+        Section {
+            Toggle(isOn: Binding(
+                get: {
+                    UserDefaults.standard.object(forKey: AppConstants.Reliability.backgroundKeepAliveKey) as? Bool
+                        ?? AppConstants.Reliability.defaultBackgroundKeepAlive
+                },
+                set: { newValue in
+                    UserDefaults.standard.set(newValue, forKey: AppConstants.Reliability.backgroundKeepAliveKey)
+                    HapticService.shared.selection()
+                }
+            )) {
+                HStack(spacing: isPad ? 20 : 12) {
+                    Image(systemName: "moon.fill")
+                        .font(.system(size: iconSize))
+                        .foregroundColor(.accentColor)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Background Alarm Guard")
+                            .font(.system(size: titleSize, weight: .semibold))
+                            .foregroundColor(.primary)
+                        Text("Keeps alarm working in silent mode")
+                            .font(.system(size: subtitleSize))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .tint(.accentColor)
+        } header: {
+            Text("Alarm Reliability")
+        } footer: {
+            Text("When enabled, AlarmTune stays active in the background to ensure alarms ring even in silent mode. Disable to save battery, but alarms may not sound when your phone is muted.")
+                .font(.caption2)
         }
     }
 

@@ -82,6 +82,49 @@ final class VolumeMonitor: ObservableObject {
         }
     }
 
+    // MARK: - R5: Reliability Assessment
+
+    /// R5 新增：评估闹钟在静音模式下的可靠性等级
+    /// 综合：后台保活开关 + 铃声来源 + 系统音量
+    /// - Parameters:
+    ///   - alarmVolume: 闹钟设定的音量
+    ///   - soundName: 铃声名称
+    ///   - isBackgroundKeepAlive: 后台保活是否开启
+    /// - Returns: 可靠性等级
+    func reliabilityLevel(for alarmVolume: Float, soundName: String, isBackgroundKeepAlive: Bool) -> AppConstants.Reliability.ReliabilityLevel {
+        let soundSource = AppConstants.Sound.source(for: soundName)
+
+        // 系统音量为 0 + 无保活 -> 高风险
+        if systemVolume == 0 && !isBackgroundKeepAlive {
+            return .atRisk
+        }
+
+        // Apple Music 铃声无法预排程 -> 部分可靠
+        if soundSource == .appleMusic && !isBackgroundKeepAlive {
+            return .partial
+        }
+
+        // 后台保活开启 + 内置/导入铃声 -> 可靠
+        if isBackgroundKeepAlive && soundSource != .appleMusic {
+            return .reliable
+        }
+
+        // 后台保活关闭 -> 部分可靠（仅非静音模式可响）
+        return .partial
+    }
+
+    /// R5 新增：可靠性预警文案
+    func reliabilityMessage(for level: AppConstants.Reliability.ReliabilityLevel) -> String? {
+        switch level {
+        case .reliable:
+            return nil  // 可靠时不显示预警
+        case .partial:
+            return "Alarm may not ring in silent mode. Enable Background Alarm Guard in Settings for reliability."
+        case .atRisk:
+            return "System volume is muted and Background Alarm Guard is off. Alarm may not sound."
+        }
+    }
+
     // MARK: - Private
 
     /// 使用 KVO 监测系统音量变化

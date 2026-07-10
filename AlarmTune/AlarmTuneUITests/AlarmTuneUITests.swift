@@ -15,10 +15,38 @@ final class AlarmTuneUITests: XCTestCase {
 
     override func tearDownWithError() throws {}
 
+    /// 处理通知权限弹窗（R2 请求 .criticalAlert 后弹窗可能更频繁出现）
+    /// 必须在点击 Add Alarm 之前调用，以确保 monitor 已注册
+    @MainActor
+    private func setupNotificationPermissionHandler(_ app: XCUIApplication) {
+        addUIInterruptionMonitor(withDescription: "Notification Permission") { alert in
+            let allowButton = alert.buttons["Allow"]
+            let dontAllowButton = alert.buttons["Don't Allow"]
+            if allowButton.exists {
+                allowButton.tap()
+                return true
+            }
+            if dontAllowButton.exists {
+                dontAllowButton.tap()
+                return true
+            }
+            return false
+        }
+    }
+
+    /// 触发 interruption monitor 处理弹窗
+    @MainActor
+    private func handleInterruptionIfNeeded(_ app: XCUIApplication) {
+        app.tap()
+    }
+
     /// 导航到 SoundPickerView 的辅助方法。
     /// 处理首次启动（空状态按钮）和已有闹钟（工具栏按钮）两种情况。
     @MainActor
     private func navigateToSoundPicker(_ app: XCUIApplication) -> Bool {
+        // 在点击 Add Alarm 之前注册通知权限弹窗处理
+        setupNotificationPermissionHandler(app)
+
         // 优先尝试空状态下的 "Add Alarm" 按钮（首次启动场景）
         let emptyAddButton = app.buttons["addAlarmEmptyButton"]
         let toolbarAddButton = app.buttons["addAlarmToolbarButton"]
@@ -36,9 +64,12 @@ final class AlarmTuneUITests: XCTestCase {
             return false
         }
 
+        // 触发 interruption monitor 处理可能的通知权限弹窗
+        handleInterruptionIfNeeded(app)
+
         // 等待 AlarmEditView 出现（通过 Cancel/Save 按钮确认 sheet 已弹出）
         let cancelButton = app.buttons["Cancel"]
-        guard cancelButton.waitForExistence(timeout: 5) else {
+        guard cancelButton.waitForExistence(timeout: 10) else {
             XCTFail("AlarmEditView did not appear (Cancel button not found)")
             return false
         }
@@ -140,9 +171,9 @@ final class AlarmTuneUITests: XCTestCase {
 
         XCTAssertTrue(navigateToSoundPicker(app), "Should navigate to sound picker")
 
-        // 等待内容加载后，点击第一个 play.circle.fill 按钮预览
+        // 等待内容加载后，点击第一个 Preview sound 按钮预览
         let playButtons = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS 'play' OR label CONTAINS 'Play'")
+            NSPredicate(format: "label CONTAINS 'Preview' OR label CONTAINS 'play' OR label CONTAINS 'Play'")
         )
         XCTAssertTrue(
             playButtons.firstMatch.waitForExistence(timeout: 5),

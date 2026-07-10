@@ -21,9 +21,10 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // M3 修改：仅在有闹钟即将响铃或正在响铃时保持音频会话
-        // 无闹钟响铃时，释放音频会话避免影响用户音乐播放
-        if !AudioService.shared.isPlaying {
+        // R3 修改：有待响闹钟预排程时保持 AudioSession 活跃，否则释放
+        // 原逻辑：无闹钟播放时一律释放 -> R1 后台保活失效
+        // 新逻辑：无闹钟播放 AND 无后台预排程时才释放
+        if !AudioService.shared.isPlaying && !BackgroundAudioKeeper.shared.hasActiveKeepAlive {
             try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
         }
     }

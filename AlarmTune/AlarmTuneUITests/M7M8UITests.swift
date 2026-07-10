@@ -13,6 +13,31 @@ final class M7M8UITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// 处理通知权限弹窗（R2 请求 .criticalAlert 后弹窗可能更频繁出现）
+    /// 必须在点击 Add Alarm 之前调用，以确保 monitor 已注册
+    @MainActor
+    private func setupNotificationPermissionHandler(_ app: XCUIApplication) {
+        addUIInterruptionMonitor(withDescription: "Notification Permission") { alert in
+            let allowButton = alert.buttons["Allow"]
+            let dontAllowButton = alert.buttons["Don't Allow"]
+            if allowButton.exists {
+                allowButton.tap()
+                return true
+            }
+            if dontAllowButton.exists {
+                dontAllowButton.tap()
+                return true
+            }
+            return false
+        }
+    }
+
+    /// 触发 interruption monitor 处理弹窗
+    @MainActor
+    private func handleInterruptionIfNeeded(_ app: XCUIApplication) {
+        app.tap()
+    }
+
     // MARK: - M7a: Premium 订阅
 
     /// 测试 Settings 页面 Premium 升级入口
@@ -178,17 +203,17 @@ final class M7M8UITests: XCTestCase {
         let navBar = app.navigationBars["Video Background"]
         XCTAssertTrue(navBar.waitForExistence(timeout: 5), "Video Background picker should appear")
 
-        // 点击第一个内置视频卡片（Sunrise）
-        let sunriseText = app.staticTexts["Sunrise"]
-        XCTAssertTrue(sunriseText.waitForExistence(timeout: 3), "Sunrise video should exist")
-        sunriseText.tap()
+        // 点击第一个内置视频卡片（Thunder Lightning）
+        let thunderText = app.staticTexts["Thunder Lightning"]
+        XCTAssertTrue(thunderText.waitForExistence(timeout: 3), "Thunder Lightning video should exist")
+        thunderText.tap()
 
-        // 验证返回 Alarm Edit 后 Video Background 行显示 "Sunrise"
+        // 验证返回 Alarm Edit 后 Video Background 行显示 "Thunder Lightning"
         let updatedVideoButton = app.buttons["videoPickerButton"]
         XCTAssertTrue(updatedVideoButton.waitForExistence(timeout: 5), "Should return to alarm edit")
         XCTAssertTrue(
-            updatedVideoButton.label.contains("Sunrise"),
-            "Video Background should show 'Sunrise', got: \(updatedVideoButton.label)"
+            updatedVideoButton.label.contains("Thunder Lightning"),
+            "Video Background should show 'Thunder Lightning', got: \(updatedVideoButton.label)"
         )
     }
 
@@ -262,6 +287,9 @@ final class M7M8UITests: XCTestCase {
 
     @MainActor
     private func navigateToAddAlarm(_ app: XCUIApplication) {
+        // 在点击 Add Alarm 之前注册通知权限弹窗处理
+        setupNotificationPermissionHandler(app)
+
         let emptyAddButton = app.buttons["addAlarmEmptyButton"]
         let toolbarAddButton = app.buttons["addAlarmToolbarButton"]
 
@@ -277,8 +305,11 @@ final class M7M8UITests: XCTestCase {
             return
         }
 
+        // 触发 interruption monitor 处理可能的通知权限弹窗
+        handleInterruptionIfNeeded(app)
+
         let cancelButton = app.buttons["Cancel"]
-        guard cancelButton.waitForExistence(timeout: 5) else {
+        guard cancelButton.waitForExistence(timeout: 10) else {
             XCTFail("AlarmEditView did not appear")
             return
         }
