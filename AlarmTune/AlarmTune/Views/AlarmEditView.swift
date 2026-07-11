@@ -409,14 +409,16 @@ struct AlarmEditView: View {
     // MARK: - R5: Reliability Indicator
 
     /// R5 新增：计算当前闹钟的可靠性等级
-    /// 综合后台保活开关 + 铃声来源 + 系统音量
+    /// 综合 AlarmKit 适配 + 后台保活开关 + 铃声来源 + 系统音量
     private var currentReliabilityLevel: AppConstants.Reliability.ReliabilityLevel {
         let isKeepAlive = UserDefaults.standard.object(forKey: AppConstants.Reliability.backgroundKeepAliveKey) as? Bool
             ?? AppConstants.Reliability.defaultBackgroundKeepAlive
+        let hasVideo = !(videoBackgroundName ?? "").isEmpty
         return volumeMonitor.reliabilityLevel(
             for: volume,
             soundName: soundName,
-            isBackgroundKeepAlive: isKeepAlive
+            isBackgroundKeepAlive: isKeepAlive,
+            hasVideoBackground: hasVideo
         )
     }
 

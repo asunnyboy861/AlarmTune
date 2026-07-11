@@ -15,8 +15,7 @@ class AlarmScheduler: NSObject {
     }
 
     func requestAuthorization(completion: @escaping (Bool) -> Void) {
-        // R2 修改：尝试请求 .criticalAlert（闹钟是时间敏感场景，符合 Apple 审批标准）
-        // iOS 12+ 支持，若 Apple 未授权 .criticalAlert 权限，系统会自动降级忽略此选项
+        // R2: 请求通知权限（含 .criticalAlert，系统未授权时自动降级）
         let options: UNAuthorizationOptions = [.alert, .sound, .badge, .criticalAlert]
         notificationCenter.requestAuthorization(options: options) { granted, error in
             if let error = error {
@@ -26,11 +25,27 @@ class AlarmScheduler: NSObject {
                 completion(granted)
             }
         }
+
+        // R7: iOS 26+ 同时请求 AlarmKit 权限
+        if #available(iOS 26.0, *) {
+            Task {
+                _ = await AlarmKitAdapter.shared.requestAuthorization()
+            }
+        }
     }
 
     func scheduleAlarm(_ alarm: AlarmItem) {
         guard alarm.isEnabled else { return }
 
+        // R7: iOS 26+ 优先使用 AlarmKit（系统级可靠性，绕过静音模式）
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            Task {
+                await AlarmKitAdapter.shared.scheduleAlarm(alarm)
+            }
+            return
+        }
+
+        // 回退到三层架构（iOS 17-25 或 Apple Music/导入铃声/视频背景）
         let content = createNotificationContent(for: alarm)
         let repeatDays = alarm.repeatDays ?? []
 
@@ -169,6 +184,13 @@ class AlarmScheduler: NSObject {
     }
 
     func scheduleSnooze(for alarm: AlarmItem, minutes: Int) {
+        // R7: iOS 26+ 优先使用 AlarmKit snooze
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: minutes)
+            return
+        }
+
+        // 回退到三层架构 snooze
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = "\(alarm.wrappedLabel) (Snooze)"
@@ -220,6 +242,14 @@ class AlarmScheduler: NSObject {
     }
 
     func cancelAlarm(_ alarm: AlarmItem) {
+        // R7: 取消 AlarmKit 闹钟（如果适用）
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            AlarmKitAdapter.shared.cancelAlarm(alarmId: alarm.wrappedId)
+            AlarmKitAdapter.shared.cancelSnooze(alarmId: alarm.wrappedId)
+            return
+        }
+
+        // 取消三层架构的闹钟
         var identifiers = [alarm.wrappedId]
 
         if let repeatDays = alarm.repeatDays, !repeatDays.isEmpty {

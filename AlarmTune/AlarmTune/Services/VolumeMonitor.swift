@@ -85,14 +85,22 @@ final class VolumeMonitor: ObservableObject {
     // MARK: - R5: Reliability Assessment
 
     /// R5 新增：评估闹钟在静音模式下的可靠性等级
-    /// 综合：后台保活开关 + 铃声来源 + 系统音量
+    /// 综合：AlarmKit 适配 + 后台保活开关 + 铃声来源 + 系统音量
     /// - Parameters:
     ///   - alarmVolume: 闹钟设定的音量
     ///   - soundName: 铃声名称
     ///   - isBackgroundKeepAlive: 后台保活是否开启
+    ///   - hasVideoBackground: 是否有视频背景（AlarmKit 不支持视频背景）
     /// - Returns: 可靠性等级
-    func reliabilityLevel(for alarmVolume: Float, soundName: String, isBackgroundKeepAlive: Bool) -> AppConstants.Reliability.ReliabilityLevel {
+    func reliabilityLevel(for alarmVolume: Float, soundName: String, isBackgroundKeepAlive: Bool, hasVideoBackground: Bool = false) -> AppConstants.Reliability.ReliabilityLevel {
         let soundSource = AppConstants.Sound.source(for: soundName)
+
+        // R7: iOS 26+ + 内置铃声 + 无视频背景 -> AlarmKit 路径（系统级可靠性）
+        if #available(iOS 26.0, *) {
+            if soundSource == .builtIn && !hasVideoBackground {
+                return .reliable
+            }
+        }
 
         // 系统音量为 0 + 无保活 -> 高风险
         if systemVolume == 0 && !isBackgroundKeepAlive {

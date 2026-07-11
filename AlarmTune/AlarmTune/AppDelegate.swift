@@ -12,6 +12,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         AlarmScheduler.shared.registerNotificationCategories()
         // 通知权限推迟到用户创建第一个闹钟时再请求，提高授权率
 
+        // R7: iOS 26+ 启动 AlarmKit 闹钟状态监听
+        if #available(iOS 26.0, *) {
+            _ = AlarmKitAdapter.shared
+        }
+
         // V1：应用启动时预生成内置视频缩略图，用户打开选择器时立即可见
         Task { @MainActor in
             VideoBackgroundService.shared.generateThumbnails()

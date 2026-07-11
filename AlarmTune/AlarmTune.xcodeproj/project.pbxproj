@@ -34,6 +34,7 @@
 		41603D01E8359963043A40D0 /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A371B490181DB3B4911A7F13 /* SubscriptionService.swift */; };
 		4B2BC5545DC2A3B444FF5DDE /* OceanWaves.caf in Resources */ = {isa = PBXBuildFile; fileRef = B9EC2BD6365BF55C5C363154 /* OceanWaves.caf */; };
 		4BE6B4011449883C4EBE70A8 /* SchoolBell.caf in Resources */ = {isa = PBXBuildFile; fileRef = 79B83998045E6ECCC606FC86 /* SchoolBell.caf */; };
+		570FBDCFD256E72667CD15F9 /* AlarmKitAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E797D2994FCB579E4F166B /* AlarmKitAdapter.swift */; };
 		5978E1C5F54E7262463A4757 /* AlarmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51372D9FA885C5AA5C1D7E22 /* AlarmViewModel.swift */; };
 		5AC907702A4C3FBEECC4853C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1B65354B78C487A175807C /* SettingsView.swift */; };
 		5BBA13649FD87C71930BC541 /* VideoBackgroundService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED9BA5E647C223392AB494E /* VideoBackgroundService.swift */; };
@@ -134,6 +135,7 @@
 		2D158826A2F9F3BE91F64BE3 /* AlarmRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRingView.swift; sourceTree = "<group>"; };
 		2DBC8F2D61E534210635CFFC /* EmergencySiren.caf */ = {isa = PBXFileReference; path = EmergencySiren.caf; sourceTree = "<group>"; };
 		2F69A7C45D815006A0C74C21 /* AlarmPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmPreviewView.swift; sourceTree = "<group>"; };
+		30E797D2994FCB579E4F166B /* AlarmKitAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitAdapter.swift; sourceTree = "<group>"; };
 		32407B10BA828433E19BE4E7 /* fireplace.mp4 */ = {isa = PBXFileReference; path = fireplace.mp4; sourceTree = "<group>"; };
 		32E9B2FACFC49D28CF19EE61 /* RainMorning.caf */ = {isa = PBXFileReference; path = RainMorning.caf; sourceTree = "<group>"; };
 		3ACD34B80A320B4FFEFC5F98 /* MusicPickerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPickerWrapper.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 			isa = PBXGroup;
 			children = (
 				6B844DED15C09A1F30431A41 /* AIGenerationService.swift */,
+				30E797D2994FCB579E4F166B /* AlarmKitAdapter.swift */,
 				825A393691141B6D801A0D5C /* AlarmScheduler.swift */,
 				72F33D5A6BBF199F2333A0DC /* AudioService.swift */,
 				E4DE3647D8185B1F321D8B66 /* BackgroundAudioKeeper.swift */,
@@ -609,6 +612,7 @@
 				05651D1E710ADE43355E0661 /* AIGenerationService.swift in Sources */,
 				3AF9563004F881EB60AB1058 /* AlarmEditView.swift in Sources */,
 				266E3A4290577D3DAA74A7E6 /* AlarmItem.swift in Sources */,
+				570FBDCFD256E72667CD15F9 /* AlarmKitAdapter.swift in Sources */,
 				14D3A6EFEA87865733E98911 /* AlarmListView.swift in Sources */,
 				E0807DF28A79C941D46D0C4C /* AlarmPreviewView.swift in Sources */,
 				83135139C6BCD67F64B4C112 /* AlarmRingView.swift in Sources */,
@@ -905,6 +909,7 @@
 				INFOPLIST_FILE = AlarmTune/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSAlarmKitUsageDescription = "AlarmTune schedules alarms to wake you up at your chosen times, even in silent mode.";
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "AlarmTune needs access to your music library to let you set songs as alarm sounds.";
 				INFOPLIST_KEY_UIBackgroundModes = audio;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -930,6 +935,7 @@
 				INFOPLIST_FILE = AlarmTune/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSAlarmKitUsageDescription = "AlarmTune schedules alarms to wake you up at your chosen times, even in silent mode.";
 				INFOPLIST_KEY_NSAppleMusicUsageDescription = "AlarmTune needs access to your music library to let you set songs as alarm sounds.";
 				INFOPLIST_KEY_UIBackgroundModes = audio;
 				LD_RUNPATH_SEARCH_PATHS = (
