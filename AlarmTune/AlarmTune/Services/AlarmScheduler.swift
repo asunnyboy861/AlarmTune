@@ -64,11 +64,15 @@ class AlarmScheduler: NSObject {
         // M8.1：随机铃声 Shuffle 逻辑
         let effectiveSoundName = resolveShuffledSound(for: alarm)
 
-        // R2 修改：统一通知声音策略（消除 videoSound / alarmSound 分裂）
-        // 所有闹钟类型统一使用 .defaultCritical（关键警报声音）
-        // Apple 官方文档：Critical alerts ignore the mute switch and Do Not Disturb
-        // 无 Critical Alert 权限时，系统自动降级，不会崩溃
-        content.sound = .defaultCritical
+        // R8: 优先使用预渲染声音文件（App 被杀后仍能播放正确铃声+音量）
+        // 预渲染文件在闹钟保存时生成，存入 Library/Sounds/
+        if let renderedName = SoundPreRenderer.shared.preRenderedFileName(for: alarm.wrappedId) {
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: renderedName))
+            AppLogger.alarm.info("R8: using pre-rendered sound \(renderedName, privacy: .public) for alarm \(alarm.wrappedId, privacy: .public)")
+        } else {
+            // 回退：.defaultCritical（系统默认关键警报声音，无法反映用户选择的铃声和音量）
+            content.sound = .defaultCritical
+        }
         content.categoryIdentifier = "ALARM_CATEGORY"
 
         // R2 新增：timeSensitive 中断级别（iOS 15+，突破 Focus 模式）
@@ -196,8 +200,13 @@ class AlarmScheduler: NSObject {
         content.body = "\(alarm.wrappedLabel) (Snooze)"
         content.categoryIdentifier = "ALARM_CATEGORY"
 
-        // R2 修改：snooze 同样使用统一的关键警报声音策略
-        content.sound = .defaultCritical
+        // R8: snooze 通知也使用预渲染声音文件
+        if let renderedName = SoundPreRenderer.shared.preRenderedFileName(for: alarm.wrappedId) {
+            content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: renderedName))
+        } else {
+            // 回退：.defaultCritical
+            content.sound = .defaultCritical
+        }
 
         // R2 新增：timeSensitive 中断级别（iOS 15+，突破 Focus 模式）
         if #available(iOS 15.0, *) {

@@ -53,6 +53,10 @@ class AlarmViewModel: ObservableObject {
         alarm.audioSource = audioSource  // W1
 
         PersistenceController.shared.saveContext()
+
+        // R8: 预渲染铃声文件（App 被杀后通知仍能播放正确铃声+音量）
+        SoundPreRenderer.shared.render(for: alarm)
+
         AlarmScheduler.shared.scheduleAlarm(alarm)
         fetchAlarms()
         updateNextAlarmText()
@@ -63,6 +67,10 @@ class AlarmViewModel: ObservableObject {
 
     func updateAlarm(_ alarm: AlarmItem) {
         PersistenceController.shared.saveContext()
+
+        // R8: 重新预渲染铃声文件（音量/铃声/fade-in 可能已变更）
+        SoundPreRenderer.shared.render(for: alarm)
+
         if alarm.isEnabled {
             AlarmScheduler.shared.cancelAlarm(alarm)
             AlarmScheduler.shared.scheduleAlarm(alarm)
@@ -74,6 +82,8 @@ class AlarmViewModel: ObservableObject {
 
     func deleteAlarm(_ alarm: AlarmItem) {
         AlarmScheduler.shared.cancelAlarm(alarm)
+        // R8: 删除预渲染文件
+        SoundPreRenderer.shared.removeFile(for: alarm.wrappedId)
         PersistenceController.shared.delete(alarm)
         fetchAlarms()
         updateNextAlarmText()
