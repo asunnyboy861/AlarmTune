@@ -213,6 +213,10 @@ class AlarmScheduler: NSObject {
                 AppLogger.alarm.error("Failed to schedule snooze: \(error.localizedDescription, privacy: .public)")
             }
         }
+
+        // R1 fix: snooze 也需要后台保活预排程，否则后台 snooze 闹钟仅依赖通知声
+        let snoozeFireDate = Date().addingTimeInterval(TimeInterval(minutes * 60))
+        BackgroundAudioKeeper.shared.scheduleBackgroundPlayback(for: alarm, at: snoozeFireDate)
     }
 
     func cancelAlarm(_ alarm: AlarmItem) {

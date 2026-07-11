@@ -28,6 +28,10 @@ final class BackgroundAudioKeeper: NSObject {
     /// 支持多个闹钟同时预排程（如重复闹钟）
     private var scheduledPlayers: [String: AVAudioPlayer] = [:]
 
+    /// 音量提升 Timer 字典，key = alarmId，value = Timer
+    /// 在闹钟触发前 1 秒提升系统音量，确保后台闹钟有足够音量
+    private var volumeBoostTimers: [String: Timer] = [:]
+
     /// 后台任务标识，保持 App 在后台不被挂起
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
@@ -98,6 +102,7 @@ final class BackgroundAudioKeeper: NSObject {
                     scheduledPlayers[alarm.wrappedId] = player
                 }
                 beginBackgroundTask()
+                scheduleVolumeBoost(for: alarm.wrappedId, fireDate: fireDate, alarmVolume: alarm.volume)
                 AppLogger.backgroundKeeper.info("Background playback scheduled for alarm \(alarm.wrappedId, privacy: .public) at \(fireDate)")
             } else {
                 AppLogger.backgroundKeeper.error("Failed to start scheduled playback for alarm \(alarm.wrappedId, privacy: .public)")
@@ -108,12 +113,20 @@ final class BackgroundAudioKeeper: NSObject {
     }
 
     /// 取消指定闹钟的后台预排程
-    /// - Parameter alarmId: 闹钟 ID
-    func cancelBackgroundPlayback(for alarmId: String) {
+    /// - Parameters:
+    ///   - alarmId: 闹钟 ID
+    ///   - restoreVolume: 是否恢复系统音量（handover 场景设为 false，由 AudioService 接管）
+    func cancelBackgroundPlayback(for alarmId: String, restoreVolume: Bool = true) {
+        cancelVolumeBoostTimer(for: alarmId)
+
         let player: AVAudioPlayer? = lockQueue.sync {
             return scheduledPlayers.removeValue(forKey: alarmId)
         }
         player?.stop()
+
+        if restoreVolume && VolumeManager.shared.isAlarmActive {
+            VolumeManager.shared.restoreSystemVolume()
+        }
 
         if player != nil {
             AppLogger.backgroundKeeper.info("Background playback cancelled for alarm \(alarmId, privacy: .public)")
@@ -127,6 +140,13 @@ final class BackgroundAudioKeeper: NSObject {
 
     /// 取消所有后台预排程（App 退出/全部闹钟禁用时调用）
     func cancelAllBackgroundPlayback() {
+        let timers: [String: Timer] = lockQueue.sync {
+            let copy = volumeBoostTimers
+            volumeBoostTimers.removeAll()
+            return copy
+        }
+        for (_, timer) in timers { timer.invalidate() }
+
         let players: [String: AVAudioPlayer] = lockQueue.sync {
             let copy = scheduledPlayers
             scheduledPlayers.removeAll()
@@ -138,6 +158,10 @@ final class BackgroundAudioKeeper: NSObject {
             AppLogger.backgroundKeeper.info("Background playback cancelled for alarm \(alarmId, privacy: .public)")
         }
 
+        if VolumeManager.shared.isAlarmActive {
+            VolumeManager.shared.restoreSystemVolume()
+        }
+
         endBackgroundTask()
     }
 
@@ -145,8 +169,8 @@ final class BackgroundAudioKeeper: NSObject {
     /// 避免预排程播放器与 AudioService.playAlarm() 重复播放
     /// - Parameter alarmId: 闹钟 ID
     func handoverToAudioService(alarmId: String) {
-        cancelBackgroundPlayback(for: alarmId)
-        // AudioService.playAlarm() 会接管正式播放
+        cancelBackgroundPlayback(for: alarmId, restoreVolume: false)
+        // AudioService.playAlarm() 会接管正式播放和音量管理
     }
 
     /// 是否有正在保活的闹钟（供 AppDelegate 判断是否保持 AudioSession）
@@ -157,6 +181,37 @@ final class BackgroundAudioKeeper: NSObject {
     }
 
     // MARK: - Private
+
+    /// 在闹钟触发前 1 秒提升系统音量到最大
+    /// 解决后台预排程播放器音量 = systemVolume × playerVolume 问题
+    /// Timer 依赖 UIBackgroundModes: audio 保持 App 存活，App 被杀时 Timer 不触发（通知声兜底）
+    private func scheduleVolumeBoost(for alarmId: String, fireDate: Date, alarmVolume: Float) {
+        let timeUntilBoost = fireDate.timeIntervalSinceNow - 1
+        guard timeUntilBoost > 0 else {
+            AppLogger.backgroundKeeper.warning("Alarm fires too soon to schedule volume boost, skipping")
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let timer = Timer.scheduledTimer(withTimeInterval: timeUntilBoost, repeats: false) { _ in
+                VolumeManager.shared.boostSystemVolume(forAlarmVolume: alarmVolume)
+                AppLogger.backgroundKeeper.info("Volume boost triggered for alarm \(alarmId, privacy: .public)")
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            self.lockQueue.sync {
+                self.volumeBoostTimers[alarmId] = timer
+            }
+        }
+    }
+
+    /// 取消指定闹钟的音量提升 Timer
+    private func cancelVolumeBoostTimer(for alarmId: String) {
+        let timer: Timer? = lockQueue.sync {
+            return volumeBoostTimers.removeValue(forKey: alarmId)
+        }
+        timer?.invalidate()
+    }
 
     /// R4 设置开关：读取用户是否启用后台保活
     /// 默认开启（true），用户可在 Settings 中关闭以省电
