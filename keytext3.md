@@ -4,7 +4,7 @@
 Reliable Alarm in Silent Mode
 
 ## Promotional Text
-Set a different volume for each alarm and wake up reliably even in silent mode. Three-layer protection, video backgrounds, Apple Music, and AI sounds.
+Set a different volume for each alarm. Reliable in silent mode, background, and even if the app is force-quit. Video backgrounds, Apple Music, and AI sounds.
 
 ## Description
 Wake up on your terms with AlarmTune -- the alarm clock with independent volume control for every alarm, plus reliable alarm delivery even in silent mode.
@@ -21,6 +21,9 @@ Alarms fire reliably even when your phone is on silent mode or the screen is loc
 1. Background Audio Keeper -- pre-schedules audio so your alarm sounds in the background
 2. System Volume Boost -- raises system volume when your alarm fires, restores it on stop
 3. Critical Notification Fallback -- notification sound plays even if the app is force-quit
+
+Force-Quit Protection
+Your chosen alarm sound and volume are pre-rendered and saved on-device. If the app is force-quit or the system kills it in the background, the notification still plays your exact sound at your chosen volume -- not a generic system tone.
 
 Background Alarm Guard
 Toggle in Settings to keep alarms protected in the background. Reliability indicators show whether each alarm will ring in silent mode.
@@ -92,6 +95,7 @@ loudest,heavy sleeper,wake,music,sound,gentle,progressive,nap,vibrate,ringer,pre
 
 ## What's New in This Version
 - Silent Mode Reliability: Three-layer alarm protection ensures your alarm rings even on silent -- background audio keeper, system volume boost, and critical notification fallback.
+- Force-Quit Protection: Your chosen alarm sound and volume are now pre-rendered on-device. If the app is force-quit, the notification still plays your exact sound at your chosen volume.
 - System Volume Boost: Alarms now automatically raise your system volume to maximum when they fire. Original volume is restored on stop.
 - Background Alarm Guard: New toggle in Settings keeps alarms protected in the background. Reliability indicators show whether each alarm will ring in silent mode.
 - Snooze Reliability Fix: Snoozed alarms now reschedule with full background audio protection.
@@ -110,6 +114,8 @@ Key technical details:
 5. Background Alarm Guard: UserDefaults toggle (default: ON) in SettingsView. When disabled, BackgroundAudioKeeper skips scheduling.
 6. Reliability Indicators: AlarmEditView shows badge (Reliable/Partial/At Risk) based on volume, sound source, and Background Alarm Guard status.
 7. AppDelegate: Does not deactivate AudioSession when BackgroundAudioKeeper has active sessions.
+8. Sound Pre-Rendering (R8): SoundPreRenderer renders the alarm sound with volume gain and fade-in to Library/Sounds/alarm_{id}.caf using AVAudioFile and AVAudioPCMBuffer. UNNotificationSound uses this pre-rendered file so the correct sound and volume play even if the app is force-quit. Apple Music sounds fall back to .defaultCritical (DRM prevents extraction). Files are created on alarm save/update and deleted on alarm delete.
+9. AlarmKit Integration (R7, iOS 26+): AlarmKitAdapter uses AlarmManager to schedule system-level alarms that bypass silent mode and Focus automatically. Only applies to built-in .caf sounds without video backgrounds. Apple Music, imported sounds, and video backgrounds fall back to the three-layer architecture (R1-R5) with pre-rendered sound (R8).
 
 Subscription products: Monthly ($2.99/mo) and Yearly ($14.99/yr).
 Product IDs: com.zzoutuo.AlarmTune.premium.monthly, com.zzoutuo.AlarmTune.premium.yearly
