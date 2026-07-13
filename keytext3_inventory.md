@@ -47,7 +47,7 @@
 | Video Backgrounds and Import | VideoBackgroundView.swift + VideoImportService.swift | IMPLEMENTED | free/pro | "8 cinematic videos across 4 categories. Import custom videos from Photos or Files" |
 | Sound Shuffle Mode | AlarmScheduler.swift resolveShuffledSound() | IMPLEMENTED | free | "Auto-rotate alarm sounds daily or weekly" |
 | Force-Quit Protection (Pre-Rendered Sound) | SoundPreRenderer.swift render() + AlarmScheduler.swift createNotificationContent() | IMPLEMENTED | free | "Your chosen alarm sound and volume are pre-rendered and saved on-device. If the app is force-quit, the notification still plays your exact sound at your chosen volume" |
-| AlarmKit System-Level Alarm (iOS 26+) | AlarmKitAdapter.swift (DISABLED - needs further testing) | DISABLED | n/a | Not mentioned in keytext (disabled due to alarm not ringing regression) |
+| AlarmKit System-Level Alarm (iOS 26+) | AlarmKitAdapter.swift scheduleAlarm() + AlarmScheduler.swift dual-safeguard | IMPLEMENTED | free | Dual-safeguard: AlarmKit + UNNotification scheduled simultaneously for iOS 26+ |
 
 **Status Rules Used**:
 - IMPLEMENTED -> included in Description/Promotional Text/What's New
