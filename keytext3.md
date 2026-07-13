@@ -115,7 +115,7 @@ Key technical details:
 6. Reliability Indicators: AlarmEditView shows badge (Reliable/Partial/At Risk) based on volume, sound source, and Background Alarm Guard status.
 7. AppDelegate: Does not deactivate AudioSession when BackgroundAudioKeeper has active sessions.
 8. Sound Pre-Rendering (R8): SoundPreRenderer renders the alarm sound with volume gain and fade-in to Library/Sounds/alarm_{id}.caf using AVAudioFile and AVAudioPCMBuffer. UNNotificationSound uses this pre-rendered file so the correct sound and volume play even if the app is force-quit. Apple Music sounds fall back to .defaultCritical (DRM prevents extraction). Files are created on alarm save/update and deleted on alarm delete.
-9. AlarmKit Integration (R7, iOS 26+): AlarmKitAdapter uses AlarmManager to schedule system-level alarms that bypass silent mode and Focus automatically. Only applies to built-in .caf sounds without video backgrounds. Apple Music, imported sounds, and video backgrounds fall back to the three-layer architecture (R1-R5) with pre-rendered sound (R8).
+9. App Launch Reschedule: On app launch, all enabled alarms are rescheduled via UNNotification to ensure delivery mechanism is active after updates.
 
 Subscription products: Monthly ($2.99/mo) and Yearly ($14.99/yr).
 Product IDs: com.zzoutuo.AlarmTune.premium.monthly, com.zzoutuo.AlarmTune.premium.yearly
