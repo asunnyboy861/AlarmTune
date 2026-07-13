@@ -26,31 +26,33 @@ class AlarmScheduler: NSObject {
             }
         }
 
-        // R7: iOS 26+ 同时请求 AlarmKit 权限
-        if #available(iOS 26.0, *) {
-            Task {
-                _ = await AlarmKitAdapter.shared.requestAuthorization()
-            }
-        }
+        // R7: AlarmKit 暂时禁用
+        // if #available(iOS 26.0, *) {
+        //     Task {
+        //         _ = await AlarmKitAdapter.shared.requestAuthorization()
+        //     }
+        // }
     }
 
     func scheduleAlarm(_ alarm: AlarmItem) {
         guard alarm.isEnabled else { return }
 
-        // R7: iOS 26+ 优先使用 AlarmKit（系统级可靠性，绕过静音模式）
-        // 但 AlarmKit 失败时必须回退到 UNNotification，否则闹钟完全不响
-        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-            Task { [weak self] in
-                let success = await AlarmKitAdapter.shared.scheduleAlarm(alarm)
-                if !success {
-                    AppLogger.alarm.error("AlarmKit failed, falling back to UNNotification for alarm \(alarm.wrappedId, privacy: .public)")
-                    self?.scheduleViaNotification(alarm)
-                }
-            }
-            return
-        }
+        // R7: AlarmKit 暂时禁用 - 需要充分测试后再启用
+        // 问题1: AlarmKit 响铃时不调用 AudioService.playAlarm()，无音量/fade-in 控制
+        // 问题2: AlarmKit 调度"成功"但实际不响铃无法检测，无法回退
+        // 问题3: 模拟器上无法验证 AlarmKit 行为
+        // 当前使用三层架构 + R8 预渲染已覆盖 90%+ 场景
+        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+        //     Task { [weak self] in
+        //         let success = await AlarmKitAdapter.shared.scheduleAlarm(alarm)
+        //         if !success {
+        //             self?.scheduleViaNotification(alarm)
+        //         }
+        //     }
+        //     return
+        // }
 
-        // 回退到三层架构（iOS 17-25 或 Apple Music/导入铃声/视频背景）
+        // 三层架构（R1-R5）+ R8 预渲染（App 被杀仍播放正确铃声+音量）
         scheduleViaNotification(alarm)
     }
 
@@ -198,13 +200,13 @@ class AlarmScheduler: NSObject {
     }
 
     func scheduleSnooze(for alarm: AlarmItem, minutes: Int) {
-        // R7: iOS 26+ 优先使用 AlarmKit snooze
-        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-            AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: minutes)
-            return
-        }
+        // R7: AlarmKit 暂时禁用，只使用 UNNotification snooze
+        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+        //     AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: minutes)
+        //     return
+        // }
 
-        // 回退到三层架构 snooze
+        // 三层架构 snooze
         let content = UNMutableNotificationContent()
         content.title = "AlarmTune"
         content.body = "\(alarm.wrappedLabel) (Snooze)"
@@ -261,12 +263,12 @@ class AlarmScheduler: NSObject {
     }
 
     func cancelAlarm(_ alarm: AlarmItem) {
-        // R7: 取消 AlarmKit 闹钟（如果适用）
-        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-            AlarmKitAdapter.shared.cancelAlarm(alarmId: alarm.wrappedId)
-            AlarmKitAdapter.shared.cancelSnooze(alarmId: alarm.wrappedId)
-            return
-        }
+        // R7: AlarmKit 暂时禁用，只使用 UNNotification
+        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+        //     AlarmKitAdapter.shared.cancelAlarm(alarmId: alarm.wrappedId)
+        //     AlarmKitAdapter.shared.cancelSnooze(alarmId: alarm.wrappedId)
+        //     return
+        // }
 
         // 取消三层架构的闹钟
         var identifiers = [alarm.wrappedId]

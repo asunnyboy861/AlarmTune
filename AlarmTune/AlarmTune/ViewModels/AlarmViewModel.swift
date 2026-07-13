@@ -15,6 +15,19 @@ class AlarmViewModel: ObservableObject {
         fetchAlarms()
         updateNextAlarmText()
         setupNotificationObservers()
+        // R7 fix: AlarmKit 禁用后，重新调度所有已启用的闹钟
+        // 之前通过 AlarmKit 路径创建的闹钟没有 UNNotification，需要补调度
+        rescheduleAllAlarms()
+    }
+
+    /// 重新调度所有已启用的闹钟（App 启动时调用）
+    func rescheduleAllAlarms() {
+        let enabledCount = alarms.filter { $0.isEnabled }.count
+        for alarm in alarms where alarm.isEnabled {
+            AlarmScheduler.shared.cancelAlarm(alarm)
+            AlarmScheduler.shared.scheduleAlarm(alarm)
+        }
+        AppLogger.viewModel.info("Rescheduled \(enabledCount, privacy: .public) enabled alarms")
     }
 
     func fetchAlarms() {
@@ -116,12 +129,13 @@ class AlarmViewModel: ObservableObject {
             }
         }
 
-        // R7: iOS 26+ 停止 AlarmKit 闹钟
+        // R7: AlarmKit 暂时禁用，只使用三层架构
+        // if let alarmId = ringingAlarm?.wrappedId {
+        //     if #available(iOS 26.0, *) {
+        //         AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
+        //     }
+        // R1: 取消后台预排程（三层架构路径）
         if let alarmId = ringingAlarm?.wrappedId {
-            if #available(iOS 26.0, *) {
-                AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
-            }
-            // R1: 取消后台预排程（三层架构路径）
             BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
         }
 
@@ -137,17 +151,17 @@ class AlarmViewModel: ObservableObject {
     func snoozeRingingAlarm() {
         guard let alarm = ringingAlarm else { return }
 
-        // R7: iOS 26+ AlarmKit snooze 路径
-        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-            AlarmKitAdapter.shared.stopAlarm(alarmId: alarm.wrappedId)
-            AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: Int(alarm.snoozeDuration))
-            AudioService.shared.fadeOutAndStop()
-            AudioService.shared.endVideoAlarmBackgroundTask()
-            isRinging = false
-            ringingAlarm = nil
-            NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
-            return
-        }
+        // R7: AlarmKit 暂时禁用，只使用三层架构
+        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+        //     AlarmKitAdapter.shared.stopAlarm(alarmId: alarm.wrappedId)
+        //     AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: Int(alarm.snoozeDuration))
+        //     AudioService.shared.fadeOutAndStop()
+        //     AudioService.shared.endVideoAlarmBackgroundTask()
+        //     isRinging = false
+        //     ringingAlarm = nil
+        //     NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
+        //     return
+        // }
 
         // R1: 取消当前预排程（snooze 会重新调度通知 + 预排程）
         BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarm.wrappedId)
