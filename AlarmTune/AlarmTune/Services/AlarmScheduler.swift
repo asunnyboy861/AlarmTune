@@ -38,14 +38,24 @@ class AlarmScheduler: NSObject {
         guard alarm.isEnabled else { return }
 
         // R7: iOS 26+ 优先使用 AlarmKit（系统级可靠性，绕过静音模式）
+        // 但 AlarmKit 失败时必须回退到 UNNotification，否则闹钟完全不响
         if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-            Task {
-                await AlarmKitAdapter.shared.scheduleAlarm(alarm)
+            Task { [weak self] in
+                let success = await AlarmKitAdapter.shared.scheduleAlarm(alarm)
+                if !success {
+                    AppLogger.alarm.error("AlarmKit failed, falling back to UNNotification for alarm \(alarm.wrappedId, privacy: .public)")
+                    self?.scheduleViaNotification(alarm)
+                }
             }
             return
         }
 
         // 回退到三层架构（iOS 17-25 或 Apple Music/导入铃声/视频背景）
+        scheduleViaNotification(alarm)
+    }
+
+    /// 通过 UNNotification 调度闹钟（三层架构）
+    private func scheduleViaNotification(_ alarm: AlarmItem) {
         let content = createNotificationContent(for: alarm)
         let repeatDays = alarm.repeatDays ?? []
 

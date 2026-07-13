@@ -71,17 +71,17 @@ final class AlarmKitAdapter {
         return true
     }
 
-    func scheduleAlarm(_ alarm: AlarmItem) async {
+    func scheduleAlarm(_ alarm: AlarmItem) async -> Bool {
         guard let uuid = UUID(uuidString: alarm.wrappedId) else {
             AppLogger.alarm.error("AlarmKit: invalid UUID \(alarm.wrappedId, privacy: .public)")
-            return
+            return false
         }
 
         if !isAuthorized {
             let granted = await requestAuthorization()
             guard granted else {
-                AppLogger.alarm.warning("AlarmKit: not authorized, falling back")
-                return
+                AppLogger.alarm.warning("AlarmKit: not authorized, falling back to UNNotification")
+                return false
             }
         }
 
@@ -98,8 +98,10 @@ final class AlarmKitAdapter {
         do {
             _ = try await AlarmManager.shared.schedule(id: uuid, configuration: configuration)
             AppLogger.alarm.info("AlarmKit: scheduled alarm \(alarm.wrappedId, privacy: .public)")
+            return true
         } catch {
             AppLogger.alarm.error("AlarmKit: schedule failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
     }
 
