@@ -26,33 +26,34 @@ class AlarmScheduler: NSObject {
             }
         }
 
-        // R7: AlarmKit 暂时禁用
-        // if #available(iOS 26.0, *) {
-        //     Task {
-        //         _ = await AlarmKitAdapter.shared.requestAuthorization()
-        //     }
-        // }
+        // R7: iOS 26+ 同时请求 AlarmKit 权限（双保险）
+        if #available(iOS 26.0, *) {
+            Task {
+                _ = await AlarmKitAdapter.shared.requestAuthorization()
+            }
+        }
     }
 
     func scheduleAlarm(_ alarm: AlarmItem) {
         guard alarm.isEnabled else { return }
 
-        // R7: AlarmKit 暂时禁用 - 需要充分测试后再启用
-        // 问题1: AlarmKit 响铃时不调用 AudioService.playAlarm()，无音量/fade-in 控制
-        // 问题2: AlarmKit 调度"成功"但实际不响铃无法检测，无法回退
-        // 问题3: 模拟器上无法验证 AlarmKit 行为
-        // 当前使用三层架构 + R8 预渲染已覆盖 90%+ 场景
-        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-        //     Task { [weak self] in
-        //         let success = await AlarmKitAdapter.shared.scheduleAlarm(alarm)
-        //         if !success {
-        //             self?.scheduleViaNotification(alarm)
-        //         }
-        //     }
-        //     return
-        // }
+        // R7: 双保险架构 - AlarmKit + UNNotification 同时调度
+        // AlarmKit: 系统级闹钟，绕过静音/Focus，App被杀仍可响铃
+        // UNNotification: 三层架构 + R8预渲染，确保音量控制和fade-in
+        // 两者协同：AlarmKit alerting -> AudioService接管播放；UNNotification willPresent 去重
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            Task {
+                let success = await AlarmKitAdapter.shared.scheduleAlarm(alarm)
+                if success {
+                    AppLogger.alarm.info("AlarmKit scheduled for \(alarm.wrappedId, privacy: .public), also scheduling UNNotification as backup")
+                } else {
+                    AppLogger.alarm.warning("AlarmKit failed for \(alarm.wrappedId, privacy: .public), UNNotification is primary")
+                }
+            }
+            // 同时调度 UNNotification（不 return）
+        }
 
-        // 三层架构（R1-R5）+ R8 预渲染（App 被杀仍播放正确铃声+音量）
+        // 三层架构（R1-R5）+ R8 预渲染（始终调度，作为保底/音量控制层）
         scheduleViaNotification(alarm)
     }
 
@@ -200,11 +201,10 @@ class AlarmScheduler: NSObject {
     }
 
     func scheduleSnooze(for alarm: AlarmItem, minutes: Int) {
-        // R7: AlarmKit 暂时禁用，只使用 UNNotification snooze
-        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-        //     AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: minutes)
-        //     return
-        // }
+        // R7: 同时调度 AlarmKit snooze（双保险）
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: minutes)
+        }
 
         // 三层架构 snooze
         let content = UNMutableNotificationContent()
@@ -263,12 +263,11 @@ class AlarmScheduler: NSObject {
     }
 
     func cancelAlarm(_ alarm: AlarmItem) {
-        // R7: AlarmKit 暂时禁用，只使用 UNNotification
-        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-        //     AlarmKitAdapter.shared.cancelAlarm(alarmId: alarm.wrappedId)
-        //     AlarmKitAdapter.shared.cancelSnooze(alarmId: alarm.wrappedId)
-        //     return
-        // }
+        // R7: 同时取消 AlarmKit 闹钟（双保险模式下两者都被调度了）
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            AlarmKitAdapter.shared.cancelAlarm(alarmId: alarm.wrappedId)
+            AlarmKitAdapter.shared.cancelSnooze(alarmId: alarm.wrappedId)
+        }
 
         // 取消三层架构的闹钟
         var identifiers = [alarm.wrappedId]
@@ -324,6 +323,14 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         let userInfo = notification.request.content.userInfo
+
+        // R7 去重：如果 AudioService 已在播放（AlarmKit 先触发了），不重复播放
+        if AudioService.shared.isPlaying {
+            AppLogger.alarm.info("UNNotification willPresent: AudioService already playing (AlarmKit), skipping duplicate")
+            completionHandler([.banner, .badge])
+            return
+        }
+
         // R1 新增：将预排程播放器移交给 AudioService，避免重复播放
         if let alarmId = userInfo["alarmId"] as? String {
             BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)

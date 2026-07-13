@@ -129,13 +129,12 @@ class AlarmViewModel: ObservableObject {
             }
         }
 
-        // R7: AlarmKit 暂时禁用，只使用三层架构
-        // if let alarmId = ringingAlarm?.wrappedId {
-        //     if #available(iOS 26.0, *) {
-        //         AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
-        //     }
-        // R1: 取消后台预排程（三层架构路径）
+        // R7: 同时停止 AlarmKit 闹钟（双保险模式下两者都在响）
         if let alarmId = ringingAlarm?.wrappedId {
+            if #available(iOS 26.0, *) {
+                AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
+            }
+            // R1: 取消后台预排程
             BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
         }
 
@@ -151,17 +150,10 @@ class AlarmViewModel: ObservableObject {
     func snoozeRingingAlarm() {
         guard let alarm = ringingAlarm else { return }
 
-        // R7: AlarmKit 暂时禁用，只使用三层架构
-        // if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
-        //     AlarmKitAdapter.shared.stopAlarm(alarmId: alarm.wrappedId)
-        //     AlarmKitAdapter.shared.scheduleSnooze(for: alarm, minutes: Int(alarm.snoozeDuration))
-        //     AudioService.shared.fadeOutAndStop()
-        //     AudioService.shared.endVideoAlarmBackgroundTask()
-        //     isRinging = false
-        //     ringingAlarm = nil
-        //     NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
-        //     return
-        // }
+        // R7: 同时停止 AlarmKit 闹钟（snooze 会在 scheduleSnooze 中重新调度 AlarmKit）
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.canSchedule(alarm: alarm) {
+            AlarmKitAdapter.shared.stopAlarm(alarmId: alarm.wrappedId)
+        }
 
         // R1: 取消当前预排程（snooze 会重新调度通知 + 预排程）
         BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarm.wrappedId)

@@ -184,8 +184,33 @@ final class AlarmKitAdapter {
         switch alarm.state {
         case .alerting:
             AppLogger.alarm.info("AlarmKit: alerting \(alarmId, privacy: .public)")
+
+            // 从 CoreData 获取闹钟配置，调用 AudioService 播放铃声（带音量控制和 fade-in）
+            let context = PersistenceController.shared.viewContext
+            let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+            // AlarmKit 闹钟 ID 可能带 "-snooze" 后缀，需要匹配基础 ID
+            let baseId = alarmId.replacingOccurrences(of: "-snooze", with: "")
+            fetchRequest.predicate = NSPredicate(format: "id == %@", baseId)
+            if let alarmItem = try? context.fetch(fetchRequest).first {
+                let soundName = alarmItem.wrappedSoundName
+                let volume = alarmItem.volume
+                let isFadeIn = alarmItem.isFadeIn
+                let fadeInDuration = alarmItem.fadeInDuration
+
+                // 如果 AudioService 还没在播放（避免 UNNotification 已触发时重复播放）
+                if !AudioService.shared.isPlaying {
+                    AppLogger.alarm.info("AlarmKit: AudioService接管播放 \(soundName, privacy: .public) vol \(volume, privacy: .public)")
+                    AudioService.shared.playAlarm(
+                        soundName: soundName,
+                        volume: volume,
+                        fadeIn: isFadeIn,
+                        fadeInDuration: fadeInDuration
+                    )
+                }
+            }
+
             NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
-                "alarmId": alarmId,
+                "alarmId": baseId,
                 "alarmKit": true
             ])
 
