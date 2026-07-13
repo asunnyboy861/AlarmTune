@@ -409,10 +409,19 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
 
     /// M3 提取：snooze 调度逻辑（原内联在 SNOOZE_ACTION 中）
     private func handleSnoozeAction(userInfo: [AnyHashable: Any]) {
-        guard let snoozeDuration = userInfo["snoozeDuration"] as? Int,
-              let alarmId = userInfo["alarmId"] as? String else {
+        guard let alarmId = userInfo["alarmId"] as? String else {
             NotificationCenter.default.post(name: .alarmDidSnooze, object: nil)
             return
+        }
+        // 兼容 Int/NSNumber（推送通知 JSON 解析可能返回 NSNumber）
+        let snoozeDuration: Int
+        if let v = userInfo["snoozeDuration"] as? Int {
+            snoozeDuration = v
+        } else if let v = userInfo["snoozeDuration"] as? NSNumber {
+            snoozeDuration = v.intValue
+        } else {
+            AppLogger.alarm.error("handleSnoozeAction: missing snoozeDuration, using default")
+            snoozeDuration = AppConstants.Alarm.defaultSnoozeMinutes
         }
         let context = PersistenceController.shared.viewContext
         let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
@@ -424,8 +433,22 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
     }
 
     private func handleAlarmNotification(userInfo: [AnyHashable: Any]) {
-        guard let soundName = userInfo["soundName"] as? String,
-              let volume = userInfo["volume"] as? Float else { return }
+        guard let soundName = userInfo["soundName"] as? String else {
+            AppLogger.alarm.error("handleAlarmNotification: missing soundName")
+            return
+        }
+        // 兼容 Float/Double/NSNumber（推送通知 JSON 解析可能返回 Double 而非 Float）
+        let volume: Float
+        if let v = userInfo["volume"] as? Float {
+            volume = v
+        } else if let v = userInfo["volume"] as? Double {
+            volume = Float(v)
+        } else if let v = userInfo["volume"] as? NSNumber {
+            volume = v.floatValue
+        } else {
+            AppLogger.alarm.error("handleAlarmNotification: missing or invalid volume")
+            return
+        }
 
         let isFadeIn = userInfo["isFadeIn"] as? Bool ?? false
         let fadeInDuration = userInfo["fadeInDuration"] as? Double ?? 5.0
@@ -434,12 +457,21 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
         let audioSource = userInfo["audioSource"] as? String ?? AppConstants.Alarm.defaultAudioSource
         if audioSource == AppConstants.AudioSource.videoSound.rawValue {
             // W6 修复：videoSound 模式必须激活 AudioSession + 启动 Background Task
-            // 否则 snooze 后 AudioSession 处于 deactivated 状态，AVPlayer 无法出声
-            // 且 App 进入后台时 AVPlayer 会被系统挂起
             _ = AudioService.shared.prepareForVideoAlarm()
-            let videoVolume = userInfo["videoVolume"] as? Float ?? volume
+            // 兼容 Float/Double/NSNumber（同 volume 修复）
+            let videoVolume: Float
+            if let v = userInfo["videoVolume"] as? Float {
+                videoVolume = v
+            } else if let v = userInfo["videoVolume"] as? Double {
+                videoVolume = Float(v)
+            } else if let v = userInfo["videoVolume"] as? NSNumber {
+                videoVolume = v.floatValue
+            } else {
+                videoVolume = volume
+            }
             VolumeManager.shared.boostSystemVolume(to: videoVolume)
         } else {
+            AppLogger.alarm.info("handleAlarmNotification: playing \(soundName, privacy: .public) vol \(volume, privacy: .public) fade \(isFadeIn, privacy: .public)")
             AudioService.shared.playAlarm(
                 soundName: soundName,
                 volume: volume,
