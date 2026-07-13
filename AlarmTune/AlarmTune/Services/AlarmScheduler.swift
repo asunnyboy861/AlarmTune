@@ -353,6 +353,10 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
             AudioService.shared.stopAlarm()
             AudioService.shared.endVideoAlarmBackgroundTask()
             if let alarmId = userInfo["alarmId"] as? String {
+                // R7: 同时停止 AlarmKit（双保险架构下 AlarmKit 可能在响）
+                if #available(iOS 26.0, *) {
+                    AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
+                }
                 BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
             }
             handleStopAction(userInfo: userInfo)
@@ -362,6 +366,10 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
             AudioService.shared.fadeOutAndStop()
             AudioService.shared.endVideoAlarmBackgroundTask()
             if let alarmId = userInfo["alarmId"] as? String {
+                // R7: 同时停止 AlarmKit（snooze 会在 handleSnoozeAction 中重新调度）
+                if #available(iOS 26.0, *) {
+                    AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
+                }
                 BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
             }
             handleSnoozeAction(userInfo: userInfo)
@@ -380,6 +388,10 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
             AudioService.shared.stopAlarm()
             AudioService.shared.endVideoAlarmBackgroundTask()
             if let alarmId = userInfo["alarmId"] as? String {
+                // R7: 同时停止 AlarmKit
+                if #available(iOS 26.0, *) {
+                    AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
+                }
                 BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
             }
             handleStopAction(userInfo: userInfo)

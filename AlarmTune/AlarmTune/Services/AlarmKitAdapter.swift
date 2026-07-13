@@ -127,6 +127,17 @@ final class AlarmKitAdapter {
                 AppLogger.alarm.error("AlarmKit: stop failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+        // 同时停止 snooze 闹钟（当前响铃的可能是 snooze）
+        if let snoozeUuid = UUID(uuidString: alarmId + "-snooze") {
+            Task {
+                do {
+                    try AlarmManager.shared.stop(id: snoozeUuid)
+                    AppLogger.alarm.info("AlarmKit: stopped snooze \(alarmId, privacy: .public)")
+                } catch {
+                    // snooze 可能不存在，忽略
+                }
+            }
+        }
     }
 
     func scheduleSnooze(for alarm: AlarmItem, minutes: Int) {
