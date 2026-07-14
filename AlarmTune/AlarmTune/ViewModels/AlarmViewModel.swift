@@ -23,14 +23,31 @@ class AlarmViewModel: ObservableObject {
     /// 重新调度所有已启用的闹钟（App 启动时调用）
     func rescheduleAllAlarms() {
         let enabledCount = alarms.filter { $0.isEnabled }.count
+        var disabledExpired = 0
         for alarm in alarms where alarm.isEnabled {
+            // 一次性闹钟过期检查：如果 App 被杀时闹钟已触发，自动禁用逻辑未执行
+            // 此时 nextFireDate 返回明天，会导致一次性闹钟明天重复响铃
+            let repeatDays = alarm.repeatDays ?? []
+            if repeatDays.isEmpty, let nextFire = alarm.nextFireDate {
+                if !Calendar.current.isDateInToday(nextFire) {
+                    alarm.isEnabled = false
+                    SoundPreRenderer.shared.removeFile(for: alarm.wrappedId)
+                    AlarmScheduler.shared.cancelAlarm(alarm)
+                    disabledExpired += 1
+                    AppLogger.viewModel.info("Auto-disabled expired one-time alarm \(alarm.wrappedId, privacy: .public) (fire time already passed)")
+                    continue
+                }
+            }
+
             // R8: 重新预渲染声音文件（确保 AlarmKit 和 UNNotification 都能用正确音量播放）
-            // App 重装或文件丢失后，预渲染文件可能不存在
             SoundPreRenderer.shared.render(for: alarm)
             AlarmScheduler.shared.cancelAlarm(alarm)
             AlarmScheduler.shared.scheduleAlarm(alarm)
         }
-        AppLogger.viewModel.info("Rescheduled \(enabledCount, privacy: .public) enabled alarms")
+        if disabledExpired > 0 {
+            PersistenceController.shared.saveContext()
+        }
+        AppLogger.viewModel.info("Rescheduled \(enabledCount - disabledExpired, privacy: .public) enabled alarms, auto-disabled \(disabledExpired, privacy: .public) expired")
     }
 
     func fetchAlarms() {
