@@ -16,9 +16,21 @@ class AlarmViewModel: ObservableObject {
         fetchAlarms()
         updateNextAlarmText()
         setupNotificationObservers()
-        // R7 fix: AlarmKit 禁用后，重新调度所有已启用的闹钟
-        // 之前通过 AlarmKit 路径创建的闹钟没有 UNNotification，需要补调度
-        rescheduleAllAlarms()
+
+        // CRITICAL: 不在 init() 中直接调用 rescheduleAllAlarms()
+        // 原因：App 被 AlarmKit 唤醒时，alarmUpdates 是 AsyncSequence，需要时间投递
+        // 如果在 init() 中立即 cancelAlarm，会在 alarmUpdates 投递前杀死正在响铃的 AlarmKit 闹钟
+        // 导致：AudioService 不启动（只响一声）、无 UI（.alarmDidFire 不发送）
+
+        // 1秒后检查响铃状态（给 alarmUpdates 时间投递，恢复 UI）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.recoverRingingStateIfNeeded()
+        }
+
+        // 3秒后执行 rescheduleAllAlarms（安全地跳过正在响铃的闹钟）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.rescheduleAllAlarms()
+        }
     }
 
     /// 重新调度所有已启用的闹钟（App 启动时调用）
@@ -109,6 +121,7 @@ class AlarmViewModel: ObservableObject {
     func refresh() {
         fetchAlarms()
         updateNextAlarmText()
+        rescheduleAllAlarms()
         recoverRingingStateIfNeeded()
     }
 
