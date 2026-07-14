@@ -77,15 +77,16 @@ final class SoundPreRenderer {
             return nil
         }
 
-        // 截断到 29 秒（通知声音限制）
+        // 循环填充到 29 秒（通知声音限制）
+        // 原始铃声通常 3-5 秒，循环填充后 UNNotification 可播放 29 秒
         let sampleRate = originalFormat.sampleRate
         let maxFrames = AVAudioFrameCount(maxNotificationSoundDuration * sampleRate)
         let trimmedBuffer: AVAudioPCMBuffer
-        if originalBuffer.frameLength > maxFrames {
+        if originalBuffer.frameLength >= maxFrames {
             trimmedBuffer = originalBuffer
             trimmedBuffer.frameLength = maxFrames
         } else {
-            trimmedBuffer = originalBuffer
+            trimmedBuffer = loopBuffer(originalBuffer, to: maxFrames, format: originalFormat)
         }
 
         // 应用音量增益
@@ -194,6 +195,33 @@ final class SoundPreRenderer {
                 data[i] *= volume
             }
         }
+    }
+
+    /// 将 PCM buffer 循环填充到目标长度
+    /// 用于将短铃声（3-5 秒）循环填充到 29 秒，让 UNNotification 播放更长时间
+    private func loopBuffer(_ source: AVAudioPCMBuffer, to targetFrames: AVAudioFrameCount, format: AVAudioFormat) -> AVAudioPCMBuffer {
+        guard let loopedBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: targetFrames) else {
+            return source
+        }
+        loopedBuffer.frameLength = targetFrames
+
+        guard let srcData = source.floatChannelData, let dstData = loopedBuffer.floatChannelData else {
+            return source
+        }
+
+        let channels = Int(format.channelCount)
+        let srcFrames = Int(source.frameLength)
+        let dstFrameLength = Int(targetFrames)
+
+        for ch in 0..<channels {
+            let src = srcData[ch]
+            let dst = dstData[ch]
+            for i in 0..<dstFrameLength {
+                dst[i] = src[i % srcFrames]
+            }
+        }
+
+        return loopedBuffer
     }
 
     /// 对 PCM buffer 应用 fade-in（线性渐入）

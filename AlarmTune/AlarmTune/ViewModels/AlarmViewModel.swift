@@ -25,14 +25,24 @@ class AlarmViewModel: ObservableObject {
     func rescheduleAllAlarms() {
         let enabledCount = alarms.filter { $0.isEnabled }.count
         var disabledExpired = 0
+        var skippedAlerting = 0
+        let now = Date()
+        let alertingWindow: TimeInterval = 300 // 5 分钟窗口：刚触发的闹钟可能正在响铃
+
         for alarm in alarms where alarm.isEnabled {
-            // 一次性闹钟过期检查：用 scheduledFireDate 精确判断是否已响过
-            // nextFireDate 在 fire time 过后会返回明天，无法区分"已响过"和"设给明天"
-            // scheduledFireDate 是调度时记录的实际触发时间，只有当它已过去才说明闹钟响过
             let repeatDays = alarm.repeatDays ?? []
+
+            // 检查闹钟是否可能正在响铃（避免 cancelAlarm 杀死正在响铃的 AlarmKit 闹钟）
+            if isAlarmCurrentlyAlerting(alarm: alarm, repeatDays: repeatDays, now: now, alertingWindow: alertingWindow) {
+                skippedAlerting += 1
+                AppLogger.viewModel.info("Skipping reschedule for currently-alerting alarm \(alarm.wrappedId, privacy: .public)")
+                continue
+            }
+
+            // 一次性闹钟过期检查：用 scheduledFireDate 精确判断是否已响过
             if repeatDays.isEmpty {
                 let scheduledFireDate = UserDefaults.standard.object(forKey: "scheduledFireDate_\(alarm.wrappedId)") as? Date
-                if let scheduled = scheduledFireDate, scheduled < Date() {
+                if let scheduled = scheduledFireDate, scheduled < now {
                     alarm.isEnabled = false
                     SoundPreRenderer.shared.removeFile(for: alarm.wrappedId)
                     AlarmScheduler.shared.cancelAlarm(alarm)
@@ -50,7 +60,38 @@ class AlarmViewModel: ObservableObject {
         if disabledExpired > 0 {
             PersistenceController.shared.saveContext()
         }
-        AppLogger.viewModel.info("Rescheduled \(enabledCount - disabledExpired, privacy: .public) enabled alarms, auto-disabled \(disabledExpired, privacy: .public) expired")
+        AppLogger.viewModel.info("Rescheduled \(enabledCount - disabledExpired - skippedAlerting, privacy: .public) enabled alarms, auto-disabled \(disabledExpired, privacy: .public) expired, skipped \(skippedAlerting, privacy: .public) alerting")
+    }
+
+    /// 判断闹钟是否可能正在响铃
+    /// 1. 检查 AlarmKit alerting 状态（如果 alarmUpdates 已送达）
+    /// 2. 时间启发式：一次性闹钟 scheduledFireDate 在 5 分钟内 / 重复闹钟当前时间在 hour:minute 的 5 分钟内
+    private func isAlarmCurrentlyAlerting(alarm: AlarmItem, repeatDays: [Int], now: Date, alertingWindow: TimeInterval) -> Bool {
+        // 检查 AlarmKit alerting 状态
+        if #available(iOS 26.0, *), AlarmKitAdapter.shared.isCurrentlyAlerting(alarmId: alarm.wrappedId) {
+            return true
+        }
+
+        if repeatDays.isEmpty {
+            // 一次性闹钟：检查 scheduledFireDate 是否在 5 分钟内
+            let scheduledFireDate = UserDefaults.standard.object(forKey: "scheduledFireDate_\(alarm.wrappedId)") as? Date
+            if let scheduled = scheduledFireDate {
+                let timeSinceFire = now.timeIntervalSince(scheduled)
+                if timeSinceFire >= 0 && timeSinceFire < alertingWindow {
+                    return true
+                }
+            }
+        } else {
+            // 重复闹钟：检查当前时间是否在 hour:minute 的 5 分钟内
+            let calendar = Calendar.current
+            if let alarmTime = calendar.date(bySettingHour: Int(alarm.hour), minute: Int(alarm.minute), second: 0, of: now) {
+                let timeDiff = now.timeIntervalSince(alarmTime)
+                if timeDiff >= 0 && timeDiff < alertingWindow {
+                    return true
+                }
+            }
+        }
+        return false
     }
 
     func fetchAlarms() {
@@ -72,18 +113,43 @@ class AlarmViewModel: ObservableObject {
     }
 
     /// App从后台回到前台时，恢复响铃UI状态
-    /// 场景：App在后台时闹钟通过BackgroundAudioKeeper触发，willPresent未被调用，
-    /// isRinging仍为false，用户打开App后看不到Stop/Snooze按钮
-    /// 修复：检查最近5分钟内delivered的alarm通知，恢复响铃UI
+    /// 场景1：App在后台时闹钟通过BackgroundAudioKeeper触发，willPresent未被调用
+    /// 场景2：App被AlarmKit唤醒（后台），isRinging已设置但UI不可见，用户打开App时需确认
+    /// 场景3：AlarmKit在后台触发了但 .alarmDidFire 通知因时序问题未被接收
     private func recoverRingingStateIfNeeded() {
         guard !isRinging else { return }
+
+        // 优先检查 AlarmKit alerting 状态（iOS 26+，App 被 AlarmKit 唤醒的场景）
+        if #available(iOS 26.0, *) {
+            for alarm in alarms where alarm.isEnabled {
+                if AlarmKitAdapter.shared.isCurrentlyAlerting(alarmId: alarm.wrappedId) {
+                    ringingAlarm = alarm
+                    isRinging = true
+                    AppLogger.viewModel.info("Recovered ringing state via AlarmKit alerting for \(alarm.wrappedId, privacy: .public)")
+                    // AudioService 应已由 handleAlarmUpdate 启动，但如果未启动则补启动
+                    if !AudioService.shared.isPlaying {
+                        if alarm.wrappedAudioSource == .videoSound && !(alarm.videoBackgroundName ?? "").isEmpty {
+                            _ = AudioService.shared.prepareForVideoAlarm()
+                            VolumeManager.shared.boostSystemVolume(to: alarm.videoVolume)
+                        } else {
+                            BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarm.wrappedId)
+                            AudioService.shared.playAlarm(
+                                soundName: alarm.wrappedSoundName,
+                                volume: alarm.volume,
+                                fadeIn: alarm.isFadeIn,
+                                fadeInDuration: alarm.fadeInDuration
+                            )
+                        }
+                    }
+                    return
+                }
+            }
+        }
+
         guard !AudioService.shared.isPlaying else {
-            // AudioService在播放但UI未显示（AlarmKit在后台触发了但isRinging未设置）
-            // 尝试从delivered notifications找到对应alarm
             recoverFromDeliveredNotifications()
             return
         }
-        // BackgroundAudioKeeper可能有活跃播放器（后台触发）
         if BackgroundAudioKeeper.shared.hasActiveKeepAlive {
             recoverFromDeliveredNotifications()
         }
