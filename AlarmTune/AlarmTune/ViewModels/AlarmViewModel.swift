@@ -131,11 +131,29 @@ class AlarmViewModel: ObservableObject {
     }
 
     /// App从后台回到前台时，恢复响铃UI状态
-    /// 场景1：App在后台时闹钟通过BackgroundAudioKeeper触发，willPresent未被调用
-    /// 场景2：App被AlarmKit唤醒（后台），isRinging已设置但UI不可见，用户打开App时需确认
-    /// 场景3：AlarmKit在后台触发了但 .alarmDidFire 通知因时序问题未被接收
+    /// 场景1：App在后台时闹钟触发，willPresent未被调用，AudioService未启动
+    /// 场景2：App被AlarmKit唤醒（后台），alarmUpdates未投递，isRinging未被设置
+    /// 场景3：AlarmKit系统UI已自动消失，但UNNotification仍在通知中心
     private func recoverRingingStateIfNeeded() {
-        guard !isRinging else { return }
+        // 已在响铃状态：检查 AudioService 是否在播放
+        if isRinging {
+            // UI 显示但无声音 -> AudioService 可能启动失败或被停止，需要补启动
+            if !AudioService.shared.isPlaying, let alarm = ringingAlarm {
+                AppLogger.viewModel.warning("isRinging=true but AudioService not playing, restarting audio for \(alarm.wrappedId, privacy: .public)")
+                if alarm.wrappedAudioSource == .videoSound && !(alarm.videoBackgroundName ?? "").isEmpty {
+                    _ = AudioService.shared.prepareForVideoAlarm()
+                    VolumeManager.shared.boostSystemVolume(to: alarm.videoVolume)
+                } else {
+                    AudioService.shared.playAlarm(
+                        soundName: alarm.wrappedSoundName,
+                        volume: alarm.volume,
+                        fadeIn: alarm.isFadeIn,
+                        fadeInDuration: alarm.fadeInDuration
+                    )
+                }
+            }
+            return
+        }
 
         // 优先检查 AlarmKit alerting 状态（iOS 26+，App 被 AlarmKit 唤醒的场景）
         if #available(iOS 26.0, *) {
@@ -164,13 +182,10 @@ class AlarmViewModel: ObservableObject {
             }
         }
 
-        guard !AudioService.shared.isPlaying else {
-            recoverFromDeliveredNotifications()
-            return
-        }
-        if BackgroundAudioKeeper.shared.hasActiveKeepAlive {
-            recoverFromDeliveredNotifications()
-        }
+        // 兜底：始终检查已送达的通知
+        // 覆盖场景：App 在后台时闹钟触发，AudioService 未启动，BackgroundAudioKeeper 未活跃
+        // UNNotification 在通知中心保留 5 分钟，可通过它恢复 UI 和启动音频
+        recoverFromDeliveredNotifications()
     }
 
     private func recoverFromDeliveredNotifications() {
