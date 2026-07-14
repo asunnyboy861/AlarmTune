@@ -277,6 +277,8 @@ final class AlarmKitAdapter {
 
                 // 如果 AudioService 还没在播放（避免 UNNotification 已触发时重复播放）
                 if !AudioService.shared.isPlaying {
+                    // 先移交 BackgroundAudioKeeper 的预排程播放器，避免双音
+                    BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: baseId)
                     AppLogger.alarm.info("AlarmKit: AudioService接管播放 \(soundName, privacy: .public) vol \(volume, privacy: .public)")
                     AudioService.shared.playAlarm(
                         soundName: soundName,
@@ -293,6 +295,7 @@ final class AlarmKitAdapter {
                     fetchRequest2.predicate = NSPredicate(format: "id == %@", reverseBaseId)
                     if let alarmItem = try? context.fetch(fetchRequest2).first {
                         if !AudioService.shared.isPlaying {
+                            BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: reverseBaseId)
                             AppLogger.alarm.info("AlarmKit: snooze reverse-matched -> \(reverseBaseId, privacy: .public)")
                             AudioService.shared.playAlarm(
                                 soundName: alarmItem.wrappedSoundName,
