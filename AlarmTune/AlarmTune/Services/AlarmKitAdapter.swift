@@ -415,9 +415,18 @@ final class AlarmKitAdapter {
         let soundName = alarm.wrappedSoundName
         guard AppConstants.Sound.source(for: soundName) == .builtIn else { return .default }
 
-        guard let url = AudioService.shared.urlForSound(soundName) else { return .default }
+        // 优先使用 R8 预渲染文件（已烘焙音量增益 + fade-in）
+        // AlarmKit AlertSound API 无音量参数，必须使用预渲染文件才能保证音量一致
+        // 预渲染文件存于 Library/Sounds/，AlarmKit 与 UNNotificationSound 共享查找路径
+        if let renderedName = SoundPreRenderer.shared.preRenderedFileName(for: alarm.wrappedId) {
+            AppLogger.alarm.info("AlarmKit: using pre-rendered sound \(renderedName, privacy: .public) (volume baked in)")
+            return .named(renderedName)
+        }
 
+        // 回退：原始铃声文件（无音量控制，仅在预渲染文件缺失时使用）
+        guard let url = AudioService.shared.urlForSound(soundName) else { return .default }
         let fileName = url.lastPathComponent
+        AppLogger.alarm.warning("AlarmKit: pre-rendered file missing, falling back to original \(fileName, privacy: .public) (no volume control)")
         return .named(fileName)
     }
 }

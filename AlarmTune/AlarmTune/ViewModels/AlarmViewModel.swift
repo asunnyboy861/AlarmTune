@@ -24,6 +24,9 @@ class AlarmViewModel: ObservableObject {
     func rescheduleAllAlarms() {
         let enabledCount = alarms.filter { $0.isEnabled }.count
         for alarm in alarms where alarm.isEnabled {
+            // R8: 重新预渲染声音文件（确保 AlarmKit 和 UNNotification 都能用正确音量播放）
+            // App 重装或文件丢失后，预渲染文件可能不存在
+            SoundPreRenderer.shared.render(for: alarm)
             AlarmScheduler.shared.cancelAlarm(alarm)
             AlarmScheduler.shared.scheduleAlarm(alarm)
         }
