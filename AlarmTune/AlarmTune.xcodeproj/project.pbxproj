@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -35,6 +35,7 @@
 		4B2BC5545DC2A3B444FF5DDE /* OceanWaves.caf in Resources */ = {isa = PBXBuildFile; fileRef = B9EC2BD6365BF55C5C363154 /* OceanWaves.caf */; };
 		4BE6B4011449883C4EBE70A8 /* SchoolBell.caf in Resources */ = {isa = PBXBuildFile; fileRef = 79B83998045E6ECCC606FC86 /* SchoolBell.caf */; };
 		570FBDCFD256E72667CD15F9 /* AlarmKitAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E797D2994FCB579E4F166B /* AlarmKitAdapter.swift */; };
+		F1E2D3C4B5A69788D9E0F1A2 /* AlarmIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* AlarmIntents.swift */; };
 		595DDA75494CF8AFA0C84843 /* SoundPreRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FEBE2783FA4D9BD6E81B43 /* SoundPreRenderer.swift */; };
 		5978E1C5F54E7262463A4757 /* AlarmViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51372D9FA885C5AA5C1D7E22 /* AlarmViewModel.swift */; };
 		5AC907702A4C3FBEECC4853C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1B65354B78C487A175807C /* SettingsView.swift */; };
@@ -120,57 +121,58 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		00FAFE6BA406265A9F6DB918 /* DigitalBeep.caf */ = {isa = PBXFileReference; path = DigitalBeep.caf; sourceTree = "<group>"; };
+		00FAFE6BA406265A9F6DB918 /* DigitalBeep.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = DigitalBeep.caf; sourceTree = "<group>"; };
 		08608C5CAC71A7403D8D2C01 /* VolumeMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeMonitor.swift; sourceTree = "<group>"; };
 		0CC232BB5EC309A4693F839E /* SoundImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundImportService.swift; sourceTree = "<group>"; };
 		0FB63B4DC0A54D52783117AD /* AlarmEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmEditView.swift; sourceTree = "<group>"; };
 		1896ACC3FF46C9AA80F9681D /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		1AF85E80647AF840FE1FFDDE /* AlarmTuneTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AlarmTuneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		21F2743EE01DEB98AAB86862 /* MilitaryBugle.caf */ = {isa = PBXFileReference; path = MilitaryBugle.caf; sourceTree = "<group>"; };
-		2418EE744E9069D5310DD66E /* citylights.mp4 */ = {isa = PBXFileReference; path = citylights.mp4; sourceTree = "<group>"; };
+		21F2743EE01DEB98AAB86862 /* MilitaryBugle.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MilitaryBugle.caf; sourceTree = "<group>"; };
+		2418EE744E9069D5310DD66E /* citylights.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = citylights.mp4; sourceTree = "<group>"; };
 		26FEBE2783FA4D9BD6E81B43 /* SoundPreRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPreRenderer.swift; sourceTree = "<group>"; };
 		279BC9816C897841D81A52A0 /* AlarmTuneUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		2874E1E45AE5A0D08662229F /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
 		28E3D24573AD37A7D8DF657F /* AIAlarmGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAlarmGeneratorView.swift; sourceTree = "<group>"; };
 		2B0F7B2B22AC26CAAF89A8EB /* DocumentPickerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentPickerWrapper.swift; sourceTree = "<group>"; };
-		2C6D222DFA9F75D6D7E3AAEB /* AlarmTune.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AlarmTune.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2C6D222DFA9F75D6D7E3AAEB /* AlarmTune.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlarmTune.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D158826A2F9F3BE91F64BE3 /* AlarmRingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRingView.swift; sourceTree = "<group>"; };
-		2DBC8F2D61E534210635CFFC /* EmergencySiren.caf */ = {isa = PBXFileReference; path = EmergencySiren.caf; sourceTree = "<group>"; };
+		2DBC8F2D61E534210635CFFC /* EmergencySiren.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = EmergencySiren.caf; sourceTree = "<group>"; };
 		2F69A7C45D815006A0C74C21 /* AlarmPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmPreviewView.swift; sourceTree = "<group>"; };
 		30E797D2994FCB579E4F166B /* AlarmKitAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitAdapter.swift; sourceTree = "<group>"; };
-		32407B10BA828433E19BE4E7 /* fireplace.mp4 */ = {isa = PBXFileReference; path = fireplace.mp4; sourceTree = "<group>"; };
-		32E9B2FACFC49D28CF19EE61 /* RainMorning.caf */ = {isa = PBXFileReference; path = RainMorning.caf; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* AlarmIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmIntents.swift; sourceTree = "<group>"; };
+		32407B10BA828433E19BE4E7 /* fireplace.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = fireplace.mp4; sourceTree = "<group>"; };
+		32E9B2FACFC49D28CF19EE61 /* RainMorning.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = RainMorning.caf; sourceTree = "<group>"; };
 		3ACD34B80A320B4FFEFC5F98 /* MusicPickerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPickerWrapper.swift; sourceTree = "<group>"; };
 		3CA0FA1B0413EFFCA2D55EBA /* VideoTrimmerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimmerView.swift; sourceTree = "<group>"; };
 		3ED9BA5E647C223392AB494E /* VideoBackgroundService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundService.swift; sourceTree = "<group>"; };
 		4369C1498FF4173CBCDEF0E5 /* VolumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeManager.swift; sourceTree = "<group>"; };
-		484FAE65C8A1F27FE861C679 /* DiscoWake.caf */ = {isa = PBXFileReference; path = DiscoWake.caf; sourceTree = "<group>"; };
-		49EE99250EDFDC5E35423483 /* MorningCoffee.caf */ = {isa = PBXFileReference; path = MorningCoffee.caf; sourceTree = "<group>"; };
+		484FAE65C8A1F27FE861C679 /* DiscoWake.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = DiscoWake.caf; sourceTree = "<group>"; };
+		49EE99250EDFDC5E35423483 /* MorningCoffee.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MorningCoffee.caf; sourceTree = "<group>"; };
 		51372D9FA885C5AA5C1D7E22 /* AlarmViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmViewModel.swift; sourceTree = "<group>"; };
 		52E6D0259DAD064AF274DCD2 /* AlarmTuneUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneUITests.swift; sourceTree = "<group>"; };
-		5375BE5EEBD0EFC317075ED9 /* SunriseGlow.caf */ = {isa = PBXFileReference; path = SunriseGlow.caf; sourceTree = "<group>"; };
+		5375BE5EEBD0EFC317075ED9 /* SunriseGlow.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SunriseGlow.caf; sourceTree = "<group>"; };
 		5550552D1F2748B1937DB441 /* InlineVideoPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineVideoPlayer.swift; sourceTree = "<group>"; };
-		5695631329A9A5DEBEFC97FE /* NatureChirp.caf */ = {isa = PBXFileReference; path = NatureChirp.caf; sourceTree = "<group>"; };
+		5695631329A9A5DEBEFC97FE /* NatureChirp.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = NatureChirp.caf; sourceTree = "<group>"; };
 		58679B918399B2304757D1F9 /* VolumeSliderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeSliderView.swift; sourceTree = "<group>"; };
 		587DE5E80C80DACE9CCB27F1 /* AlarmTuneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmTuneApp.swift; sourceTree = "<group>"; };
 		5C22379187230DF61E16C4CC /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
-		5D3B832768EB80B4F72420AF /* PianoLullaby.caf */ = {isa = PBXFileReference; path = PianoLullaby.caf; sourceTree = "<group>"; };
-		628110A5218F5176F1F6D64E /* rainwindow.mp4 */ = {isa = PBXFileReference; path = rainwindow.mp4; sourceTree = "<group>"; };
-		62C35476877017917E88B9E5 /* waterfall.mp4 */ = {isa = PBXFileReference; path = waterfall.mp4; sourceTree = "<group>"; };
-		636F43DA2DC33AFCAA0AC11A /* ZenBowl.caf */ = {isa = PBXFileReference; path = ZenBowl.caf; sourceTree = "<group>"; };
-		65F91BE81E4057713407CE06 /* WindChime.caf */ = {isa = PBXFileReference; path = WindChime.caf; sourceTree = "<group>"; };
+		5D3B832768EB80B4F72420AF /* PianoLullaby.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PianoLullaby.caf; sourceTree = "<group>"; };
+		628110A5218F5176F1F6D64E /* rainwindow.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = rainwindow.mp4; sourceTree = "<group>"; };
+		62C35476877017917E88B9E5 /* waterfall.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = waterfall.mp4; sourceTree = "<group>"; };
+		636F43DA2DC33AFCAA0AC11A /* ZenBowl.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ZenBowl.caf; sourceTree = "<group>"; };
+		65F91BE81E4057713407CE06 /* WindChime.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = WindChime.caf; sourceTree = "<group>"; };
 		6704E5184E366545865C6893 /* AlarmItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmItem.swift; sourceTree = "<group>"; };
-		6A716F4C7BAB7B574CA5B8AB /* SunnyDay.caf */ = {isa = PBXFileReference; path = SunnyDay.caf; sourceTree = "<group>"; };
+		6A716F4C7BAB7B574CA5B8AB /* SunnyDay.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SunnyDay.caf; sourceTree = "<group>"; };
 		6B844DED15C09A1F30431A41 /* AIGenerationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationService.swift; sourceTree = "<group>"; };
-		6FA1B48939AE56D6AF49F27B /* GentleMorning.caf */ = {isa = PBXFileReference; path = GentleMorning.caf; sourceTree = "<group>"; };
-		7053819C1476B269EC6FF0CF /* CreekStream.caf */ = {isa = PBXFileReference; path = CreekStream.caf; sourceTree = "<group>"; };
+		6FA1B48939AE56D6AF49F27B /* GentleMorning.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GentleMorning.caf; sourceTree = "<group>"; };
+		7053819C1476B269EC6FF0CF /* CreekStream.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = CreekStream.caf; sourceTree = "<group>"; };
 		72F33D5A6BBF199F2333A0DC /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
-		74D2A4B0254B97033796D0B2 /* thunder.mp4 */ = {isa = PBXFileReference; path = thunder.mp4; sourceTree = "<group>"; };
+		74D2A4B0254B97033796D0B2 /* thunder.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = thunder.mp4; sourceTree = "<group>"; };
 		754A2FCC927E32CAEB27AAC8 /* DynamicFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicFont.swift; sourceTree = "<group>"; };
-		75AD3A6785651B56C285F8AB /* FireAlarm.caf */ = {isa = PBXFileReference; path = FireAlarm.caf; sourceTree = "<group>"; };
-		762D63D65768967EF401DC56 /* OldTelephone.caf */ = {isa = PBXFileReference; path = OldTelephone.caf; sourceTree = "<group>"; };
-		7845F91D53F4CBA7703B97EB /* ClassicAlarm.caf */ = {isa = PBXFileReference; path = ClassicAlarm.caf; sourceTree = "<group>"; };
-		79B83998045E6ECCC606FC86 /* SchoolBell.caf */ = {isa = PBXFileReference; path = SchoolBell.caf; sourceTree = "<group>"; };
+		75AD3A6785651B56C285F8AB /* FireAlarm.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = FireAlarm.caf; sourceTree = "<group>"; };
+		762D63D65768967EF401DC56 /* OldTelephone.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = OldTelephone.caf; sourceTree = "<group>"; };
+		7845F91D53F4CBA7703B97EB /* ClassicAlarm.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ClassicAlarm.caf; sourceTree = "<group>"; };
+		79B83998045E6ECCC606FC86 /* SchoolBell.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SchoolBell.caf; sourceTree = "<group>"; };
 		7AC3E9630446C6F08D5384B7 /* DayPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayPickerView.swift; sourceTree = "<group>"; };
 		825A393691141B6D801A0D5C /* AlarmScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmScheduler.swift; sourceTree = "<group>"; };
 		89DC3F74084163D8CC6697FB /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
@@ -180,38 +182,38 @@
 		91774503CF29FB08A4E945E8 /* NextAlarmIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextAlarmIndicator.swift; sourceTree = "<group>"; };
 		9402BCF3B314EA5C26BB30D9 /* MusicLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicLibraryService.swift; sourceTree = "<group>"; };
 		977C5A0C9AC1F18DF133BAD2 /* VideoBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundView.swift; sourceTree = "<group>"; };
-		98B23D7E3BD7C255A90A02D2 /* AirHorn.caf */ = {isa = PBXFileReference; path = AirHorn.caf; sourceTree = "<group>"; };
+		98B23D7E3BD7C255A90A02D2 /* AirHorn.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = AirHorn.caf; sourceTree = "<group>"; };
 		9DE4B8D83A2AE86C4F1C6061 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
-		9DEE7C2898831FF7D1E9088D /* SoftBell.caf */ = {isa = PBXFileReference; path = SoftBell.caf; sourceTree = "<group>"; };
-		9F6232D663EACF29C1B8FB5A /* forest.mp4 */ = {isa = PBXFileReference; path = forest.mp4; sourceTree = "<group>"; };
+		9DEE7C2898831FF7D1E9088D /* SoftBell.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SoftBell.caf; sourceTree = "<group>"; };
+		9F6232D663EACF29C1B8FB5A /* forest.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = forest.mp4; sourceTree = "<group>"; };
 		A371B490181DB3B4911A7F13 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
-		A600C21BCF2FD9B76913C673 /* coffeebrew.mp4 */ = {isa = PBXFileReference; path = coffeebrew.mp4; sourceTree = "<group>"; };
+		A600C21BCF2FD9B76913C673 /* coffeebrew.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = coffeebrew.mp4; sourceTree = "<group>"; };
 		AC6D604E53187CA1363D2742 /* AlarmTune.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AlarmTune.entitlements; sourceTree = "<group>"; };
 		AE5664DEBA78E2286B559A88 /* AlarmRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmRowView.swift; sourceTree = "<group>"; };
 		B42BA346BED89BEEA172319B /* LegalLinksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalLinksView.swift; sourceTree = "<group>"; };
 		B606623C8DE841535DE1F094 /* SoundPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPickerView.swift; sourceTree = "<group>"; };
 		B68A0D5474B70103932B4F7C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B7E10F60A173010E4CA6179C /* VideoBackgroundPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundPickerView.swift; sourceTree = "<group>"; };
-		B9EC2BD6365BF55C5C363154 /* OceanWaves.caf */ = {isa = PBXFileReference; path = OceanWaves.caf; sourceTree = "<group>"; };
+		B9EC2BD6365BF55C5C363154 /* OceanWaves.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = OceanWaves.caf; sourceTree = "<group>"; };
 		BA21676870F0EF6C7F9DF9D5 /* PremiumLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PremiumLockView.swift; sourceTree = "<group>"; };
 		BF5A5449A6A642DDE2274C26 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
-		C2646F01A6F009D835B7638B /* CheerfulTune.caf */ = {isa = PBXFileReference; path = CheerfulTune.caf; sourceTree = "<group>"; };
+		C2646F01A6F009D835B7638B /* CheerfulTune.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = CheerfulTune.caf; sourceTree = "<group>"; };
 		C2D90C227934B919BB2BFFF8 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
-		C4293DEB058DD56F1FF31B49 /* ForestBirds.caf */ = {isa = PBXFileReference; path = ForestBirds.caf; sourceTree = "<group>"; };
+		C4293DEB058DD56F1FF31B49 /* ForestBirds.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ForestBirds.caf; sourceTree = "<group>"; };
 		C5E21F835BAD5248F2EE328A /* M7M8UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = M7M8UITests.swift; sourceTree = "<group>"; };
-		C739F504C42EE963CA69F668 /* CarAlarm.caf */ = {isa = PBXFileReference; path = CarAlarm.caf; sourceTree = "<group>"; };
+		C739F504C42EE963CA69F668 /* CarAlarm.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = CarAlarm.caf; sourceTree = "<group>"; };
 		CB1B65354B78C487A175807C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		D09FBD676A412099CFFB630C /* VideoPreviewUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPreviewUITests.swift; sourceTree = "<group>"; };
 		D4FD85028350536C4ACAB015 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		DF25B2AC964633F32A8BCF8E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		E1CF1A83DE5793C7FC0DB1E7 /* ThunderRoll.caf */ = {isa = PBXFileReference; path = ThunderRoll.caf; sourceTree = "<group>"; };
-		E451DB408781665E9B155397 /* oceancrash.mp4 */ = {isa = PBXFileReference; path = oceancrash.mp4; sourceTree = "<group>"; };
+		E1CF1A83DE5793C7FC0DB1E7 /* ThunderRoll.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = ThunderRoll.caf; sourceTree = "<group>"; };
+		E451DB408781665E9B155397 /* oceancrash.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = oceancrash.mp4; sourceTree = "<group>"; };
 		E4DE3647D8185B1F321D8B66 /* BackgroundAudioKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundAudioKeeper.swift; sourceTree = "<group>"; };
-		EC7C2E932CA8D832D111B540 /* HarpDream.caf */ = {isa = PBXFileReference; path = HarpDream.caf; sourceTree = "<group>"; };
-		EEE9EDA4D56F2BDF2B62AFA9 /* OfficeBuzz.caf */ = {isa = PBXFileReference; path = OfficeBuzz.caf; sourceTree = "<group>"; };
-		EEF055F1E0A62E6E44D7F68E /* MechanicalTick.caf */ = {isa = PBXFileReference; path = MechanicalTick.caf; sourceTree = "<group>"; };
-		EF81AC3E952B0E8D3F309139 /* RetroRing.caf */ = {isa = PBXFileReference; path = RetroRing.caf; sourceTree = "<group>"; };
-		F10A9BBBEF5365B6FC8E5806 /* RhythmBeat.caf */ = {isa = PBXFileReference; path = RhythmBeat.caf; sourceTree = "<group>"; };
+		EC7C2E932CA8D832D111B540 /* HarpDream.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = HarpDream.caf; sourceTree = "<group>"; };
+		EEE9EDA4D56F2BDF2B62AFA9 /* OfficeBuzz.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = OfficeBuzz.caf; sourceTree = "<group>"; };
+		EEF055F1E0A62E6E44D7F68E /* MechanicalTick.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = MechanicalTick.caf; sourceTree = "<group>"; };
+		EF81AC3E952B0E8D3F309139 /* RetroRing.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = RetroRing.caf; sourceTree = "<group>"; };
+		F10A9BBBEF5365B6FC8E5806 /* RhythmBeat.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = RhythmBeat.caf; sourceTree = "<group>"; };
 		F21687C58B58142B2C1D8091 /* SoundRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundRow.swift; sourceTree = "<group>"; };
 		F3941B19413FC59974E462D2 /* AlarmTuneUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AlarmTuneUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F6290FE90280E792469AA84F /* AlarmListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmListView.swift; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 			children = (
 				6B844DED15C09A1F30431A41 /* AIGenerationService.swift */,
 				30E797D2994FCB579E4F166B /* AlarmKitAdapter.swift */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* AlarmIntents.swift */,
 				825A393691141B6D801A0D5C /* AlarmScheduler.swift */,
 				72F33D5A6BBF199F2333A0DC /* AudioService.swift */,
 				E4DE3647D8185B1F321D8B66 /* BackgroundAudioKeeper.swift */,
@@ -546,7 +549,6 @@
 			);
 			mainGroup = 5F07F65A9B794BFC65D99918;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -616,6 +618,7 @@
 				3AF9563004F881EB60AB1058 /* AlarmEditView.swift in Sources */,
 				266E3A4290577D3DAA74A7E6 /* AlarmItem.swift in Sources */,
 				570FBDCFD256E72667CD15F9 /* AlarmKitAdapter.swift in Sources */,
+				F1E2D3C4B5A69788D9E0F1A2 /* AlarmIntents.swift in Sources */,
 				14D3A6EFEA87865733E98911 /* AlarmListView.swift in Sources */,
 				E0807DF28A79C941D46D0C4C /* AlarmPreviewView.swift in Sources */,
 				83135139C6BCD67F64B4C112 /* AlarmRingView.swift in Sources */,
@@ -749,12 +752,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = (
-					UIInterfaceOrientationPortrait,
-					UIInterfaceOrientationPortraitUpsideDown,
-					UIInterfaceOrientationLandscapeLeft,
-					UIInterfaceOrientationLandscapeRight,
-				);
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.1;
@@ -844,12 +842,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = (
-					UIInterfaceOrientationPortrait,
-					UIInterfaceOrientationPortraitUpsideDown,
-					UIInterfaceOrientationLandscapeLeft,
-					UIInterfaceOrientationLandscapeRight,
-				);
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.1;
@@ -920,6 +913,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zzoutuo.AlarmTune;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -946,6 +940,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zzoutuo.AlarmTune;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;

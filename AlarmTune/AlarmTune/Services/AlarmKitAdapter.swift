@@ -102,9 +102,17 @@ final class AlarmKitAdapter {
         let attributes = buildAttributes(for: alarm)
         let sound = buildSound(for: alarm)
 
+        // stopIntent/secondaryIntent 让用户在 AlarmKit 系统 UI 点 Stop/Snooze 时自动打开 App
+        let stopIntent = StopAlarmIntent(alarmID: alarm.wrappedId)
+        let snoozeIntent: SnoozeAlarmIntent? = alarm.isSnoozeEnabled
+            ? SnoozeAlarmIntent(alarmID: alarm.wrappedId)
+            : nil
+
         let configuration = AlarmManager.AlarmConfiguration<AlarmTuneMetadata>.alarm(
             schedule: schedule,
             attributes: attributes,
+            stopIntent: stopIntent,
+            secondaryIntent: snoozeIntent,
             sound: sound
         )
 
@@ -163,9 +171,16 @@ final class AlarmKitAdapter {
         let attributes = buildAttributes(for: alarm)
         let sound = buildSound(for: alarm)
 
+        let stopIntent = StopAlarmIntent(alarmID: alarm.wrappedId)
+        let snoozeIntent: SnoozeAlarmIntent? = alarm.isSnoozeEnabled
+            ? SnoozeAlarmIntent(alarmID: alarm.wrappedId)
+            : nil
+
         let configuration = AlarmManager.AlarmConfiguration<AlarmTuneMetadata>.alarm(
             schedule: schedule,
             attributes: attributes,
+            stopIntent: stopIntent,
+            secondaryIntent: snoozeIntent,
             sound: sound
         )
 
