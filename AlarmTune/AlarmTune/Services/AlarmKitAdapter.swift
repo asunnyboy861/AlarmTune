@@ -21,6 +21,14 @@ final class AlarmKitAdapter {
 
     private var updateTask: Task<Void, Never>?
 
+    /// snooze UUID 映射（alarmId → snoozeUuid），用于 handleAlarmUpdate 反查
+    /// snoozeUuid 通过确定性算法从 alarmId 派生（XOR 最后一个字节），App 重启后可重建
+    private var snoozeUuidToAlarmId: [UUID: String] = [:]
+
+    /// 上一次 alarmUpdates 中的 alerting 闹钟集合
+    /// 用于检测用户通过系统 UI 停止闹钟（闹钟从列表中消失）
+    private var previousAlertingIds: Set<UUID> = []
+
     private init() {
         observeAlarmUpdates()
     }
@@ -115,6 +123,7 @@ final class AlarmKitAdapter {
                 AppLogger.alarm.error("AlarmKit: cancel failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+        cancelSnooze(alarmId: alarmId)
     }
 
     func stopAlarm(alarmId: String) {
@@ -128,11 +137,11 @@ final class AlarmKitAdapter {
             }
         }
         // 同时停止 snooze 闹钟（当前响铃的可能是 snooze）
-        if let snoozeUuid = UUID(uuidString: alarmId + "-snooze") {
+        if let snoozeUuid = snoozeUuid(for: alarmId) {
             Task {
                 do {
                     try AlarmManager.shared.stop(id: snoozeUuid)
-                    AppLogger.alarm.info("AlarmKit: stopped snooze \(alarmId, privacy: .public)")
+                    AppLogger.alarm.info("AlarmKit: stopped snooze for \(alarmId, privacy: .public)")
                 } catch {
                     // snooze 可能不存在，忽略
                 }
@@ -142,13 +151,12 @@ final class AlarmKitAdapter {
 
     func scheduleSnooze(for alarm: AlarmItem, minutes: Int) {
         guard UUID(uuidString: alarm.wrappedId) != nil else { return }
+        guard let snoozeUuid = snoozeUuid(for: alarm.wrappedId) else { return }
 
         let snoozeDate = Date().addingTimeInterval(TimeInterval(minutes * 60))
         let schedule = Alarm.Schedule.fixed(snoozeDate)
         let attributes = buildAttributes(for: alarm)
         let sound = buildSound(for: alarm)
-
-        let snoozeUuid = UUID(uuidString: alarm.wrappedId + "-snooze") ?? UUID()
 
         let configuration = AlarmManager.AlarmConfiguration<AlarmTuneMetadata>.alarm(
             schedule: schedule,
@@ -156,10 +164,13 @@ final class AlarmKitAdapter {
             sound: sound
         )
 
+        // 记录映射，用于 handleAlarmUpdate 反查
+        snoozeUuidToAlarmId[snoozeUuid] = alarm.wrappedId
+
         Task {
             do {
                 _ = try await AlarmManager.shared.schedule(id: snoozeUuid, configuration: configuration)
-                AppLogger.alarm.info("AlarmKit: snooze scheduled for \(minutes) min")
+                AppLogger.alarm.info("AlarmKit: snooze scheduled for \(minutes) min, uuid=\(snoozeUuid.uuidString, privacy: .public)")
             } catch {
                 AppLogger.alarm.error("AlarmKit: snooze failed: \(error.localizedDescription, privacy: .public)")
             }
@@ -167,14 +178,29 @@ final class AlarmKitAdapter {
     }
 
     func cancelSnooze(alarmId: String) {
-        guard let snoozeUuid = UUID(uuidString: alarmId + "-snooze") else { return }
+        guard let snoozeUuid = snoozeUuid(for: alarmId) else { return }
         Task {
             do {
                 try AlarmManager.shared.cancel(id: snoozeUuid)
+                AppLogger.alarm.info("AlarmKit: cancelled snooze for \(alarmId, privacy: .public)")
             } catch {
                 // snooze 可能不存在，忽略
             }
         }
+    }
+
+    // MARK: - Deterministic Snooze UUID
+
+    /// 从 alarmId 确定性派生 snooze UUID
+    /// 算法：将原始 UUID 的最后一个字节 XOR 0x01（翻转最低位）
+    /// 保证：同一 alarmId 总是返回同一 snoozeUuid，App 重启后可重建
+    private func snoozeUuid(for alarmId: String) -> UUID? {
+        guard var uuid = UUID(uuidString: alarmId) else { return nil }
+        withUnsafeMutableBytes(of: &uuid) { bytes in
+            guard bytes.count == 16 else { return }
+            bytes[15] ^= 0x01
+        }
+        return uuid
     }
 
     // MARK: - Alarm Updates
@@ -182,26 +208,67 @@ final class AlarmKitAdapter {
     private func observeAlarmUpdates() {
         updateTask = Task { [weak self] in
             for await alarms in AlarmManager.shared.alarmUpdates {
+                guard let self = self else { return }
+
+                // 检测从列表中消失的 alerting 闹钟（用户通过系统 UI 停止了闹钟）
+                let currentAlertingIds = Set(alarms.filter { $0.state == .alerting }.map { $0.id })
+                let disappearedIds = self.previousAlertingIds.subtracting(currentAlertingIds)
+                for disappearedId in disappearedIds {
+                    self.handleAlarmDisappeared(disappearedId)
+                }
+                self.previousAlertingIds = currentAlertingIds
+
+                // 处理当前列表中的闹钟
                 for alarm in alarms {
-                    self?.handleAlarmUpdate(alarm)
+                    self.handleAlarmUpdate(alarm)
                 }
             }
         }
     }
 
+    /// 闹钟从 alarmUpdates 列表中消失（用户通过系统 UI 停止/系统超时）
+    private func handleAlarmDisappeared(_ alarmUuid: UUID) {
+        let alarmIdStr = alarmUuid.uuidString
+        AppLogger.alarm.info("AlarmKit: alarm disappeared \(alarmIdStr, privacy: .public) — user stopped via system UI")
+
+        // 先读取映射再清理（判断是否是 snooze）
+        let baseId = snoozeUuidToAlarmId[alarmUuid] ?? alarmIdStr
+        snoozeUuidToAlarmId.removeValue(forKey: alarmUuid)
+
+        if AudioService.shared.isPlaying {
+            AppLogger.alarm.info("AlarmKit: stopping AudioService — alarm disappeared")
+            AudioService.shared.stopAlarm()
+            AudioService.shared.endVideoAlarmBackgroundTask()
+        }
+
+        BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: baseId)
+        handleAlarmStopped(alarmId: baseId)
+        NotificationCenter.default.post(name: .alarmDidStop, object: nil)
+    }
+
     private func handleAlarmUpdate(_ alarm: Alarm) {
-        let alarmId = alarm.id.uuidString
+        let alarmKitUuid = alarm.id
+        let alarmKitIdStr = alarmKitUuid.uuidString
 
         switch alarm.state {
         case .alerting:
-            AppLogger.alarm.info("AlarmKit: alerting \(alarmId, privacy: .public)")
+            AppLogger.alarm.info("AlarmKit: alerting \(alarmKitIdStr, privacy: .public)")
 
-            // 从 CoreData 获取闹钟配置，调用 AudioService 播放铃声（带音量控制和 fade-in）
+            // 判断是否是 snooze 闹钟：检查 snoozeUuidToAlarmId 映射或确定性派生反查
+            let baseId: String
+            if let mappedId = snoozeUuidToAlarmId[alarmKitUuid] {
+                baseId = mappedId
+                AppLogger.alarm.info("AlarmKit: snooze alarm matched via mapping -> \(baseId, privacy: .public)")
+            } else {
+                // 尝试反查：检查所有已知 alarmId 的 snoozeUuid 是否匹配
+                baseId = alarmKitIdStr
+            }
+
+            // 从 CoreData 获取闹钟配置
             let context = PersistenceController.shared.viewContext
             let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
-            // AlarmKit 闹钟 ID 可能带 "-snooze" 后缀，需要匹配基础 ID
-            let baseId = alarmId.replacingOccurrences(of: "-snooze", with: "")
             fetchRequest.predicate = NSPredicate(format: "id == %@", baseId)
+
             if let alarmItem = try? context.fetch(fetchRequest).first {
                 let soundName = alarmItem.wrappedSoundName
                 let volume = alarmItem.volume
@@ -218,6 +285,30 @@ final class AlarmKitAdapter {
                         fadeInDuration: fadeInDuration
                     )
                 }
+            } else {
+                // CoreData 未找到：可能是 snooze 闹钟但映射丢失（App 重启后）
+                // 尝试用 alarmKitIdStr 反向派生 baseId
+                if let reverseBaseId = reverseSnoozeToBaseId(alarmKitUuid) {
+                    let fetchRequest2 = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+                    fetchRequest2.predicate = NSPredicate(format: "id == %@", reverseBaseId)
+                    if let alarmItem = try? context.fetch(fetchRequest2).first {
+                        if !AudioService.shared.isPlaying {
+                            AppLogger.alarm.info("AlarmKit: snooze reverse-matched -> \(reverseBaseId, privacy: .public)")
+                            AudioService.shared.playAlarm(
+                                soundName: alarmItem.wrappedSoundName,
+                                volume: alarmItem.volume,
+                                fadeIn: alarmItem.isFadeIn,
+                                fadeInDuration: alarmItem.fadeInDuration
+                            )
+                        }
+                        NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
+                            "alarmId": reverseBaseId,
+                            "alarmKit": true
+                        ])
+                        return
+                    }
+                }
+                AppLogger.alarm.warning("AlarmKit: alerting but alarm not found in CoreData for \(baseId, privacy: .public)")
             }
 
             NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
@@ -230,12 +321,30 @@ final class AlarmKitAdapter {
         }
     }
 
+    /// 反向推导：给定一个可能的 snoozeUuid，尝试找到对应的 baseId
+    /// 算法：将 UUID 最后一个字节 XOR 0x01 还原原始 UUID
+    private func reverseSnoozeToBaseId(_ snoozeUuid: UUID) -> String? {
+        var uuid = snoozeUuid
+        withUnsafeMutableBytes(of: &uuid) { bytes in
+            guard bytes.count == 16 else { return }
+            bytes[15] ^= 0x01
+        }
+        let baseUuidStr = uuid.uuidString
+        // 验证 CoreData 中是否存在该 alarm
+        let context = PersistenceController.shared.viewContext
+        let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+        fetchRequest.predicate = NSPredicate(format: "id == %@", baseUuidStr)
+        if (try? context.fetch(fetchRequest).first) != nil {
+            return baseUuidStr
+        }
+        return nil
+    }
+
     private func handleAlarmStopped(alarmId: String) {
         let context = PersistenceController.shared.viewContext
         let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
         fetchRequest.predicate = NSPredicate(format: "id == %@", alarmId)
         guard let alarm = try? context.fetch(fetchRequest).first else {
-            NotificationCenter.default.post(name: .alarmDidStop, object: nil)
             return
         }
         let repeatDays = alarm.repeatDays ?? []
@@ -244,7 +353,6 @@ final class AlarmKitAdapter {
             try? context.save()
             AppLogger.alarm.info("AlarmKit: one-time alarm auto-disabled \(alarmId, privacy: .public)")
         }
-        NotificationCenter.default.post(name: .alarmDidStop, object: nil)
     }
 
     // MARK: - Private Builders
