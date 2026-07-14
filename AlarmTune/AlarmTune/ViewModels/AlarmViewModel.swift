@@ -35,10 +35,23 @@ class AlarmViewModel: ObservableObject {
 
     /// 重新调度所有已启用的闹钟（App 启动时调用）
     func rescheduleAllAlarms() {
-        // 硬守卫：如果 AudioService 正在播放，说明闹钟正在响铃，绝对不能 cancel
+        // 硬守卫1：如果 AudioService 正在播放，说明闹钟正在响铃，绝对不能 cancel
         if AudioService.shared.isPlaying {
             AppLogger.viewModel.info("Skipping rescheduleAllAlarms - AudioService is playing (alarm active)")
             return
+        }
+
+        // 硬守卫2：检查 AlarmKit 是否有正在响铃的闹钟（使用同步快照 API）
+        // alarmUpdates 可能尚未投递，必须主动检查
+        if #available(iOS 26.0, *) {
+            for alarm in alarms where alarm.isEnabled {
+                if AlarmKitAdapter.shared.isCurrentlyAlerting(alarmId: alarm.wrappedId) {
+                    AppLogger.viewModel.info("Skipping rescheduleAllAlarms - AlarmKit alarm \(alarm.wrappedId, privacy: .public) is alerting")
+                    // 主动处理这个正在响铃的闹钟（启动 AudioService + UI）
+                    AlarmKitAdapter.shared.checkAndHandleAlertingAlarms()
+                    return
+                }
+            }
         }
 
         let enabledCount = alarms.filter { $0.isEnabled }.count

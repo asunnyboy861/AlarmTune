@@ -33,6 +33,39 @@ final class AlarmKitAdapter {
         observeAlarmUpdates()
     }
 
+    /// App 启动时主动检查是否有正在响铃的 AlarmKit 闹钟
+    /// Apple 文档：App 重启时必须调用 AlarmManager.shared.alarms 获取当前快照
+    /// alarmUpdates AsyncSequence 在冷启动时可能延迟投递，不能依赖它
+    @discardableResult
+    func checkAndHandleAlertingAlarms() -> Bool {
+        guard isAuthorized else { return false }
+
+        do {
+            let allAlarms = try AlarmManager.shared.alarms
+            let alertingAlarms = allAlarms.filter { $0.state == .alerting }
+
+            if alertingAlarms.isEmpty {
+                AppLogger.alarm.info("AlarmKit: no alerting alarms on launch")
+                return false
+            }
+
+            AppLogger.alarm.info("AlarmKit: found \(alertingAlarms.count) alerting alarm(s) on launch")
+
+            // 同步更新 previousAlertingIds
+            previousAlertingIds = Set(alertingAlarms.map { $0.id })
+
+            // 主动处理每个正在响铃的闹钟（不等 alarmUpdates）
+            for alarm in alertingAlarms {
+                handleAlarmUpdate(alarm)
+            }
+
+            return true
+        } catch {
+            AppLogger.alarm.error("AlarmKit: failed to get alarms snapshot on launch: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
     // MARK: - Authorization
 
     @discardableResult
@@ -65,7 +98,23 @@ final class AlarmKitAdapter {
     /// 检查指定闹钟是否正在响铃（供 rescheduleAllAlarms 调用，避免取消正在响铃的闹钟）
     func isCurrentlyAlerting(alarmId: String) -> Bool {
         guard let uuid = UUID(uuidString: alarmId) else { return false }
-        return previousAlertingIds.contains(uuid)
+
+        // 优先检查 previousAlertingIds（来自 alarmUpdates，实时性好）
+        if previousAlertingIds.contains(uuid) { return true }
+
+        // previousAlertingIds 为空时，主动获取 AlarmManager.shared.alarms 同步快照
+        // Apple 文档：App 重启时必须调用 AlarmManager.shared.alarms 获取当前状态
+        // alarmUpdates AsyncSequence 在 App 冷启动/从后台恢复时可能延迟投递
+        do {
+            let allAlarms = try AlarmManager.shared.alarms
+            let alertingIds = Set(allAlarms.filter { $0.state == .alerting }.map { $0.id })
+            // 同步更新 previousAlertingIds
+            previousAlertingIds = alertingIds
+            return alertingIds.contains(uuid)
+        } catch {
+            AppLogger.alarm.error("AlarmKit: failed to get alarms snapshot: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
     }
 
     // MARK: - Scheduling

@@ -15,6 +15,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // R7: iOS 26+ 启动 AlarmKit 闹钟状态监听
         if #available(iOS 26.0, *) {
             _ = AlarmKitAdapter.shared
+            // 主动检查是否有正在响铃的闹钟（App 被 AlarmKit 唤醒的场景）
+            // alarmUpdates AsyncSequence 在冷启动时可能延迟投递，不能依赖它
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                AlarmKitAdapter.shared.checkAndHandleAlertingAlarms()
+            }
         }
 
         // V1：应用启动时预生成内置视频缩略图，用户打开选择器时立即可见
