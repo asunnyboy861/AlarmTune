@@ -347,7 +347,8 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             self.isPlaying = false
             self.currentVolume = 0
         }
-        // Intentionally don't deactivate audio session — caller manages session lifecycle
+        // 恢复预览时提升的系统音量（与 previewLocalSound/previewAppleMusicSound 中的 boost 配对）
+        VolumeManager.shared.restoreSystemVolume()
     }
 
     /// 预览铃声但不重新配置 AudioSession
@@ -384,6 +385,11 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer?.volume = volume
             audioPlayer?.delegate = self
             isPreviewMode = true
+
+            // 提升系统音量到 1.0，使预览音量与实际闹铃一致
+            // 实际闹铃 playAlarm 也会 boostSystemVolume，预览不 boost 会导致用户误以为闹铃很小声
+            VolumeManager.shared.boostSystemVolume(forAlarmVolume: volume)
+
             audioPlayer?.play()
 
             DispatchQueue.main.async {
@@ -412,7 +418,9 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         player.setQueue(with: collection)
         musicPlayer = player
         isPreviewMode = true
-        // iOS 限制：MPMusicPlayerController.volume 不可用，预览使用当前系统音量
+        // iOS 限制：MPMusicPlayerController.volume 不可用，需将系统音量设为闹钟音量
+        // 与 playAlarm 中 Apple Music 路径保持一致，确保预览音量与实际闹铃一致
+        VolumeManager.shared.boostSystemVolume(to: volume)
         player.play()
 
         DispatchQueue.main.async {
@@ -518,5 +526,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         isPreviewMode = false
         audioPlayer = nil
         deactivateAudioSession()
+        // 预览结束后恢复原始系统音量（与 previewLocalSound 中的 boostSystemVolume 配对）
+        VolumeManager.shared.restoreSystemVolume()
     }
 }

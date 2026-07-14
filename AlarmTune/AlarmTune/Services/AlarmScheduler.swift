@@ -55,6 +55,14 @@ class AlarmScheduler: NSObject {
 
         // 三层架构（R1-R5）+ R8 预渲染（始终调度，作为保底/音量控制层）
         scheduleViaNotification(alarm)
+
+        // 跟踪一次性闹钟的实际调度触发时间，用于 App 重启时判断是否已响过
+        // nextFireDate 在 fire time 过后会返回明天，无法区分"已响过"和"设给明天"
+        // scheduledFireDate 记录用户调度时的实际触发时间，精确判断
+        let repeatDays = alarm.repeatDays ?? []
+        if repeatDays.isEmpty, let fireDate = alarm.nextFireDate {
+            UserDefaults.standard.set(fireDate, forKey: "scheduledFireDate_\(alarm.wrappedId)")
+        }
     }
 
     /// 通过 UNNotification 调度闹钟（三层架构）
@@ -285,6 +293,9 @@ class AlarmScheduler: NSObject {
 
         // R1 新增：取消后台预排程
         BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarm.wrappedId)
+
+        // 清理 scheduledFireDate 跟踪记录
+        UserDefaults.standard.removeObject(forKey: "scheduledFireDate_\(alarm.wrappedId)")
     }
 
     func cancelAllAlarms() {

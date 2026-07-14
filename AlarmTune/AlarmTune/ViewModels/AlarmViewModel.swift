@@ -26,16 +26,18 @@ class AlarmViewModel: ObservableObject {
         let enabledCount = alarms.filter { $0.isEnabled }.count
         var disabledExpired = 0
         for alarm in alarms where alarm.isEnabled {
-            // 一次性闹钟过期检查：如果 App 被杀时闹钟已触发，自动禁用逻辑未执行
-            // 此时 nextFireDate 返回明天，会导致一次性闹钟明天重复响铃
+            // 一次性闹钟过期检查：用 scheduledFireDate 精确判断是否已响过
+            // nextFireDate 在 fire time 过后会返回明天，无法区分"已响过"和"设给明天"
+            // scheduledFireDate 是调度时记录的实际触发时间，只有当它已过去才说明闹钟响过
             let repeatDays = alarm.repeatDays ?? []
-            if repeatDays.isEmpty, let nextFire = alarm.nextFireDate {
-                if !Calendar.current.isDateInToday(nextFire) {
+            if repeatDays.isEmpty {
+                let scheduledFireDate = UserDefaults.standard.object(forKey: "scheduledFireDate_\(alarm.wrappedId)") as? Date
+                if let scheduled = scheduledFireDate, scheduled < Date() {
                     alarm.isEnabled = false
                     SoundPreRenderer.shared.removeFile(for: alarm.wrappedId)
                     AlarmScheduler.shared.cancelAlarm(alarm)
                     disabledExpired += 1
-                    AppLogger.viewModel.info("Auto-disabled expired one-time alarm \(alarm.wrappedId, privacy: .public) (fire time already passed)")
+                    AppLogger.viewModel.info("Auto-disabled expired one-time alarm \(alarm.wrappedId, privacy: .public) (scheduled fire date \(scheduled, privacy: .public) has passed)")
                     continue
                 }
             }
