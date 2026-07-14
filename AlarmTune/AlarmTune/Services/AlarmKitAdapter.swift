@@ -348,20 +348,28 @@ final class AlarmKitAdapter {
                                 )
                             }
                         }
-                        NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
+                        let snoozeUserInfo: [String: Any] = [
                             "alarmId": reverseBaseId,
                             "alarmKit": true
-                        ])
+                        ]
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: snoozeUserInfo)
+                        }
                         return
                     }
                 }
                 AppLogger.alarm.warning("AlarmKit: alerting but alarm not found in CoreData for \(baseId, privacy: .public)")
             }
 
-            NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
+            // 在主线程发送 .alarmDidFire，确保 AlarmViewModel 立即接收并更新 UI
+            // 避免 App 在后台时 main.async 块被延迟执行
+            let userInfo: [String: Any] = [
                 "alarmId": baseId,
                 "alarmKit": true
-            ])
+            ]
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: userInfo)
+            }
 
         default:
             break

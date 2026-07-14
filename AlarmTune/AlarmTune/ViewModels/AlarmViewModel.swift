@@ -27,14 +27,20 @@ class AlarmViewModel: ObservableObject {
             self?.recoverRingingStateIfNeeded()
         }
 
-        // 3秒后执行 rescheduleAllAlarms（安全地跳过正在响铃的闹钟）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+        // 5秒后执行 rescheduleAllAlarms（给足 alarmUpdates 投递时间 + AudioService 启动时间）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
             self?.rescheduleAllAlarms()
         }
     }
 
     /// 重新调度所有已启用的闹钟（App 启动时调用）
     func rescheduleAllAlarms() {
+        // 硬守卫：如果 AudioService 正在播放，说明闹钟正在响铃，绝对不能 cancel
+        if AudioService.shared.isPlaying {
+            AppLogger.viewModel.info("Skipping rescheduleAllAlarms - AudioService is playing (alarm active)")
+            return
+        }
+
         let enabledCount = alarms.filter { $0.isEnabled }.count
         var disabledExpired = 0
         var skippedAlerting = 0
@@ -121,7 +127,6 @@ class AlarmViewModel: ObservableObject {
     func refresh() {
         fetchAlarms()
         updateNextAlarmText()
-        rescheduleAllAlarms()
         recoverRingingStateIfNeeded()
     }
 
