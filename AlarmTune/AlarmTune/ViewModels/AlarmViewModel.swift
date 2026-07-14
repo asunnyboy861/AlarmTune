@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import CoreData
+import UserNotifications
 import os.log
 
 class AlarmViewModel: ObservableObject {
@@ -65,6 +66,71 @@ class AlarmViewModel: ObservableObject {
     func refresh() {
         fetchAlarms()
         updateNextAlarmText()
+        recoverRingingStateIfNeeded()
+    }
+
+    /// App从后台回到前台时，恢复响铃UI状态
+    /// 场景：App在后台时闹钟通过BackgroundAudioKeeper触发，willPresent未被调用，
+    /// isRinging仍为false，用户打开App后看不到Stop/Snooze按钮
+    /// 修复：检查最近5分钟内delivered的alarm通知，恢复响铃UI
+    private func recoverRingingStateIfNeeded() {
+        guard !isRinging else { return }
+        guard !AudioService.shared.isPlaying else {
+            // AudioService在播放但UI未显示（AlarmKit在后台触发了但isRinging未设置）
+            // 尝试从delivered notifications找到对应alarm
+            recoverFromDeliveredNotifications()
+            return
+        }
+        // BackgroundAudioKeeper可能有活跃播放器（后台触发）
+        if BackgroundAudioKeeper.shared.hasActiveKeepAlive {
+            recoverFromDeliveredNotifications()
+        }
+    }
+
+    private func recoverFromDeliveredNotifications() {
+        UNUserNotificationCenter.current().getDeliveredNotifications { [weak self] notifications in
+            guard let self = self else { return }
+            let now = Date()
+            // 找到最近5分钟内触发的alarm通知
+            let recentAlarmNotifications = notifications.filter {
+                $0.request.content.categoryIdentifier == "ALARM_CATEGORY" &&
+                now.timeIntervalSince($0.date) < 300
+            }
+            guard let notification = recentAlarmNotifications.first,
+                  let alarmId = notification.request.content.userInfo["alarmId"] as? String else {
+                return
+            }
+            let matchingAlarm = self.alarms.first { $0.wrappedId == alarmId }
+            DispatchQueue.main.async {
+                guard !self.isRinging else { return }
+                self.ringingAlarm = matchingAlarm
+                self.isRinging = true
+
+                // 后台触发的闹钟：BackgroundAudioKeeper在播放但AudioService未接管
+                // 需要移交播放权，确保音量控制和视频音频正确处理
+                if !AudioService.shared.isPlaying {
+                    BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)
+                    if let alarm = matchingAlarm {
+                        if alarm.wrappedAudioSource == .videoSound,
+                           (alarm.videoBackgroundName ?? "").isEmpty == false {
+                            // videoSound模式：VideoBackgroundView会播放视频音频
+                            // 仅准备AudioSession + 设置系统音量
+                            _ = AudioService.shared.prepareForVideoAlarm()
+                            VolumeManager.shared.boostSystemVolume(to: alarm.videoVolume)
+                        } else {
+                            // alarmSound模式：AudioService接管闹钟铃声播放
+                            AudioService.shared.playAlarm(
+                                soundName: alarm.wrappedSoundName,
+                                volume: alarm.volume,
+                                fadeIn: alarm.isFadeIn,
+                                fadeInDuration: alarm.fadeInDuration
+                            )
+                        }
+                    }
+                }
+                AppLogger.viewModel.info("Recovered ringing state for alarm \(alarmId, privacy: .public) (was ringing in background without UI)")
+            }
+        }
     }
 
     func addAlarm(hour: Int, minute: Int, label: String, volume: Float, soundName: String, isFadeIn: Bool, fadeInDuration: Double, isVibrate: Bool, isSnoozeEnabled: Bool = true, snoozeDuration: Int = AppConstants.Alarm.defaultSnoozeMinutes, category: String?, repeatDays: [Int]? = nil, videoBackgroundName: String? = nil, videoVolume: Float = AppConstants.Alarm.defaultVideoVolume, audioSource: String = AppConstants.Alarm.defaultAudioSource) -> AlarmItem {
