@@ -215,35 +215,35 @@ class AlarmViewModel: ObservableObject {
                 return
             }
             let matchingAlarm = self.alarms.first { $0.wrappedId == alarmId }
-            DispatchQueue.main.async {
-                guard !self.isRinging else { return }
-                self.ringingAlarm = matchingAlarm
-                self.isRinging = true
+            // getDeliveredNotifications 的回调在后台线程
+            // 直接设置 @Published 属性（不使用 main.async），确保 isRinging 立即生效
+            guard !self.isRinging else { return }
+            self.ringingAlarm = matchingAlarm
+            self.isRinging = true
 
-                // 后台触发的闹钟：BackgroundAudioKeeper在播放但AudioService未接管
-                // 需要移交播放权，确保音量控制和视频音频正确处理
-                if !AudioService.shared.isPlaying {
-                    BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)
-                    if let alarm = matchingAlarm {
-                        if alarm.wrappedAudioSource == .videoSound,
-                           (alarm.videoBackgroundName ?? "").isEmpty == false {
-                            // videoSound模式：VideoBackgroundView会播放视频音频
-                            // 仅准备AudioSession + 设置系统音量
-                            _ = AudioService.shared.prepareForVideoAlarm()
-                            VolumeManager.shared.boostSystemVolume(to: alarm.videoVolume)
-                        } else {
-                            // alarmSound模式：AudioService接管闹钟铃声播放
-                            AudioService.shared.playAlarm(
-                                soundName: alarm.wrappedSoundName,
-                                volume: alarm.volume,
-                                fadeIn: alarm.isFadeIn,
-                                fadeInDuration: alarm.fadeInDuration
-                            )
-                        }
+            // 后台触发的闹钟：BackgroundAudioKeeper在播放但AudioService未接管
+            // 需要移交播放权，确保音量控制和视频音频正确处理
+            if !AudioService.shared.isPlaying {
+                BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)
+                if let alarm = matchingAlarm {
+                    if alarm.wrappedAudioSource == .videoSound,
+                       (alarm.videoBackgroundName ?? "").isEmpty == false {
+                        // videoSound模式：VideoBackgroundView会播放视频音频
+                        // 仅准备AudioSession + 设置系统音量
+                        _ = AudioService.shared.prepareForVideoAlarm()
+                        VolumeManager.shared.boostSystemVolume(to: alarm.videoVolume)
+                    } else {
+                        // alarmSound模式：AudioService接管闹钟铃声播放
+                        AudioService.shared.playAlarm(
+                            soundName: alarm.wrappedSoundName,
+                            volume: alarm.volume,
+                            fadeIn: alarm.isFadeIn,
+                            fadeInDuration: alarm.fadeInDuration
+                        )
                     }
                 }
-                AppLogger.viewModel.info("Recovered ringing state for alarm \(alarmId, privacy: .public) (was ringing in background without UI)")
             }
+            AppLogger.viewModel.info("Recovered ringing state for alarm \(alarmId, privacy: .public) (was ringing in background without UI)")
         }
     }
 
@@ -329,17 +329,22 @@ class AlarmViewModel: ObservableObject {
             }
         }
 
-        // R7: 同时停止 AlarmKit 闹钟（双保险模式下两者都在响）
+        // 停止 AlarmKit 闹钟
+        // 优先使用 ringingAlarm 的 ID；如果 ringingAlarm 为 nil（UI 未显示但闹钟在响），
+        // 主动检查 AlarmManager.shared.alarms 找到正在响铃的闹钟并停止
         if let alarmId = ringingAlarm?.wrappedId {
             if #available(iOS 26.0, *) {
                 AlarmKitAdapter.shared.stopAlarm(alarmId: alarmId)
             }
-            // R1: 取消后台预排程
             BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmId)
+        } else if #available(iOS 26.0, *) {
+            // 兜底：ringingAlarm 为 nil 时，主动查找并停止所有 alerting 的 AlarmKit 闹钟
+            AlarmKitAdapter.shared.stopAllAlertingAlarms()
         }
 
         AudioService.shared.stopAlarm()
         AudioService.shared.endVideoAlarmBackgroundTask()
+        VolumeManager.shared.restoreSystemVolume()
         isRinging = false
         ringingAlarm = nil
         NotificationCenter.default.post(name: .alarmDidStop, object: nil)
@@ -430,23 +435,23 @@ class AlarmViewModel: ObservableObject {
         }
 
         let matchingAlarm = alarms.first { $0.wrappedId == alarmId }
-        DispatchQueue.main.async {
-            self.ringingAlarm = matchingAlarm
-            self.isRinging = true
-        }
+        // 直接设置 isRinging，不使用 DispatchQueue.main.async
+        // 原因：App 在后台时 main.async 会被挂起，isRinging 不会被设置
+        // SwiftUI 的 @Published 属性可以在任何线程设置（Combine 的 NonIsolated 默认行为）
+        // 当 App 回到前台时，UI 会立即反映 isRinging 的值
+        ringingAlarm = matchingAlarm
+        isRinging = true
     }
 
     @objc private func handleAlarmStopped() {
-        DispatchQueue.main.async {
-            self.isRinging = false
-            self.ringingAlarm = nil
-        }
+        // 直接设置，不使用 main.async（后台时被挂起会导致状态不一致）
+        isRinging = false
+        ringingAlarm = nil
     }
 
     @objc private func handleAlarmSnoozed() {
-        DispatchQueue.main.async {
-            self.isRinging = false
-            self.ringingAlarm = nil
-        }
+        // 直接设置，不使用 main.async（后台时被挂起会导致状态不一致）
+        isRinging = false
+        ringingAlarm = nil
     }
 }

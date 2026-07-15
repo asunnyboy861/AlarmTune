@@ -29,6 +29,11 @@ final class AlarmKitAdapter {
     /// 用于检测用户通过系统 UI 停止闹钟（闹钟从列表中消失）
     private var previousAlertingIds: Set<UUID> = []
 
+    /// AudioService 已接管播放时设为 true
+    /// 防止 handleAlarmSnoozed/handleAlarmDisappeared 误停 AudioService
+    /// 当 AudioService 启动后，主动停止 AlarmKit 闹钟避免双音叠加
+    private var audioServiceTookOver: Bool = false
+
     private init() {
         observeAlarmUpdates()
     }
@@ -190,6 +195,7 @@ final class AlarmKitAdapter {
 
     func stopAlarm(alarmId: String) {
         guard let uuid = UUID(uuidString: alarmId) else { return }
+        audioServiceTookOver = false
         Task {
             do {
                 try AlarmManager.shared.stop(id: uuid)
@@ -208,6 +214,38 @@ final class AlarmKitAdapter {
                     // snooze 可能不存在，忽略
                 }
             }
+        }
+    }
+
+    /// 停止所有正在响铃的 AlarmKit 闹钟（兜底方法）
+    /// 当 ringingAlarm 为 nil 但 AlarmKit 闹钟在响时使用
+    func stopAllAlertingAlarms() {
+        audioServiceTookOver = false
+        guard isAuthorized else {
+            AppLogger.alarm.warning("AlarmKit: stopAllAlertingAlarms - not authorized")
+            return
+        }
+
+        do {
+            let allAlarms = try AlarmManager.shared.alarms
+            let alertingAlarms = allAlarms.filter { $0.state == .alerting }
+
+            for alarm in alertingAlarms {
+                Task {
+                    do {
+                        try AlarmManager.shared.stop(id: alarm.id)
+                        AppLogger.alarm.info("AlarmKit: stopped alerting alarm \(alarm.id.uuidString, privacy: .public)")
+                    } catch {
+                        AppLogger.alarm.error("AlarmKit: stop failed for \(alarm.id.uuidString, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            }
+
+            if alertingAlarms.isEmpty {
+                AppLogger.alarm.info("AlarmKit: stopAllAlertingAlarms - no alerting alarms found")
+            }
+        } catch {
+            AppLogger.alarm.error("AlarmKit: stopAllAlertingAlarms failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -304,15 +342,24 @@ final class AlarmKitAdapter {
     /// 闹钟从 alarmUpdates 列表中完全消失（用户通过系统 UI 停止了闹钟）
     private func handleAlarmDisappeared(_ alarmUuid: UUID) {
         let alarmIdStr = alarmUuid.uuidString
-        AppLogger.alarm.info("AlarmKit: alarm disappeared \(alarmIdStr, privacy: .public) — user stopped via system UI")
+        AppLogger.alarm.info("AlarmKit: alarm disappeared \(alarmIdStr, privacy: .public)")
 
         let baseId = snoozeUuidToAlarmId[alarmUuid] ?? alarmIdStr
         snoozeUuidToAlarmId.removeValue(forKey: alarmUuid)
+
+        // 如果 AudioService 已接管播放，这个 disappeared 是我们自己调用 stop 导致的
+        // 不需要停止 AudioService
+        if audioServiceTookOver {
+            AppLogger.alarm.info("AlarmKit: ignoring disappeared - AudioService took over")
+            audioServiceTookOver = false
+            return
+        }
 
         if AudioService.shared.isPlaying {
             AppLogger.alarm.info("AlarmKit: stopping AudioService — alarm disappeared")
             AudioService.shared.stopAlarm()
             AudioService.shared.endVideoAlarmBackgroundTask()
+            VolumeManager.shared.restoreSystemVolume()
         }
 
         BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: baseId)
@@ -323,15 +370,23 @@ final class AlarmKitAdapter {
     /// 闹钟从 alerting 变为 scheduled（用户通过系统 UI snooze 了闹钟）
     private func handleAlarmSnoozed(_ alarmUuid: UUID) {
         let alarmIdStr = alarmUuid.uuidString
-        AppLogger.alarm.info("AlarmKit: alarm snoozed \(alarmIdStr, privacy: .public) — user snoozed via system UI")
+        AppLogger.alarm.info("AlarmKit: alarm snoozed \(alarmIdStr, privacy: .public)")
 
         let baseId = snoozeUuidToAlarmId[alarmUuid] ?? alarmIdStr
         snoozeUuidToAlarmId.removeValue(forKey: alarmUuid)
+
+        // 如果 AudioService 已接管播放，这个 snoozed 是我们自己调用 stop 导致的
+        if audioServiceTookOver {
+            AppLogger.alarm.info("AlarmKit: ignoring snoozed - AudioService took over")
+            audioServiceTookOver = false
+            return
+        }
 
         if AudioService.shared.isPlaying {
             AppLogger.alarm.info("AlarmKit: stopping AudioService — alarm snoozed")
             AudioService.shared.fadeOutAndStop()
             AudioService.shared.endVideoAlarmBackgroundTask()
+            VolumeManager.shared.restoreSystemVolume()
         }
 
         BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: baseId)
@@ -388,6 +443,19 @@ final class AlarmKitAdapter {
                             fadeInDuration: fadeInDuration
                         )
                     }
+
+                    // AudioService 已接管播放，停止 AlarmKit 闹钟避免双音叠加
+                    // 双音叠加会导致：AlarmKit 以系统音量播放 + AudioService 以 alarmVolume 播放
+                    // 当 AlarmKit 系统 UI 消失后只剩 AudioService，音量骤降
+                    audioServiceTookOver = true
+                    Task {
+                        do {
+                            try AlarmManager.shared.stop(id: alarmKitUuid)
+                            AppLogger.alarm.info("AlarmKit: stopped alarm after AudioService takeover (avoid dual sound)")
+                        } catch {
+                            AppLogger.alarm.error("AlarmKit: stop after takeover failed: \(error.localizedDescription, privacy: .public)")
+                        }
+                    }
                 }
             } else {
                 // CoreData 未找到：可能是 snooze 闹钟但映射丢失（App 重启后）
@@ -411,29 +479,34 @@ final class AlarmKitAdapter {
                                     fadeInDuration: alarmItem.fadeInDuration
                                 )
                             }
+
+                            // AudioService 已接管，停止 AlarmKit 避免双音
+                            audioServiceTookOver = true
+                            Task {
+                                do {
+                                    try AlarmManager.shared.stop(id: alarmKitUuid)
+                                    AppLogger.alarm.info("AlarmKit: stopped snooze alarm after AudioService takeover")
+                                } catch { }
+                            }
                         }
-                        let snoozeUserInfo: [String: Any] = [
+                        // 直接发送通知，不使用 main.async（App 在后台时 main.async 被挂起）
+                        NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
                             "alarmId": reverseBaseId,
                             "alarmKit": true
-                        ]
-                        DispatchQueue.main.async {
-                            NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: snoozeUserInfo)
-                        }
+                        ])
                         return
                     }
                 }
                 AppLogger.alarm.warning("AlarmKit: alerting but alarm not found in CoreData for \(baseId, privacy: .public)")
             }
 
-            // 在主线程发送 .alarmDidFire，确保 AlarmViewModel 立即接收并更新 UI
-            // 避免 App 在后台时 main.async 块被延迟执行
-            let userInfo: [String: Any] = [
+            // 直接发送 .alarmDidFire，不使用 DispatchQueue.main.async
+            // 原因：App 在后台时 main.async 会被挂起，导致 isRinging 不被设置 -> 无 UI
+            // NotificationCenter.post 是线程安全的，handleAlarmFired 内部也不使用 main.async
+            NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
                 "alarmId": baseId,
                 "alarmKit": true
-            ]
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: userInfo)
-            }
+            ])
 
         default:
             break
