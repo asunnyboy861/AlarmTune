@@ -17,14 +17,24 @@ class AlarmViewModel: ObservableObject {
         updateNextAlarmText()
         setupNotificationObservers()
 
-        // CRITICAL: 不在 init() 中直接调用 rescheduleAllAlarms()
-        // 原因：App 被 AlarmKit 唤醒时，alarmUpdates 是 AsyncSequence，需要时间投递
-        // 如果在 init() 中立即 cancelAlarm，会在 alarmUpdates 投递前杀死正在响铃的 AlarmKit 闹钟
-        // 导致：AudioService 不启动（只响一声）、无 UI（.alarmDidFire 不发送）
-
-        // 1秒后检查响铃状态（给 alarmUpdates 时间投递，恢复 UI）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.recoverRingingStateIfNeeded()
+        // CRITICAL: 主动检查 AlarmKit 是否有正在响铃的闹钟
+        // 必须在 setupNotificationObservers() 之后调用，否则 .alarmDidFire 无人接收
+        // 场景：App 被杀后 AlarmKit 唤醒 -> 冷启动 -> AlarmViewModel 创建
+        // alarmUpdates AsyncSequence 在冷启动时延迟投递，不能依赖它
+        if #available(iOS 26.0, *) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                // 0.3s 延迟确保 fullScreenCover 已绑定 isRinging
+                let found = AlarmKitAdapter.shared.checkAndHandleAlertingAlarms()
+                if !found {
+                    // AlarmKit 没有 alerting 闹钟，检查 UNNotification
+                    self?.recoverRingingStateIfNeeded()
+                }
+            }
+        } else {
+            // iOS 26 以下：直接检查 UNNotification
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.recoverRingingStateIfNeeded()
+            }
         }
 
         // 5秒后执行 rescheduleAllAlarms（给足 alarmUpdates 投递时间 + AudioService 启动时间）
