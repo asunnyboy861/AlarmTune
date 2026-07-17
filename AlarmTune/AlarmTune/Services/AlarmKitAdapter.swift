@@ -34,8 +34,57 @@ final class AlarmKitAdapter {
     /// 当 AudioService 启动后，主动停止 AlarmKit 闹钟避免双音叠加
     private var audioServiceTookOver: Bool = false
 
+    /// 当前正在响铃的 AlarmKit 闹钟 ID（videoSound 模式）
+    /// 用于在 UI 显示后停止 AlarmKit 避免双音叠加
+    private(set) var pendingVideoAlarmKitId: UUID?
+
+    /// 标记当前闹钟是否为 videoSound 模式
+    /// videoSound 模式下 AlarmKit 作为"桥接音"，UI 显示后才停止
+    /// 暴露为只读属性，供 recoverRingingStateIfNeeded 检查
+    private(set) var isVideoSoundMode: Bool = false
+
+    /// UserDefaults key 用于持久化 videoSound 模式状态
+    /// App 被杀后恢复时，内存状态会丢失，需要通过 UserDefaults 恢复
+    private let videoSoundModeKey = "alarmKitVideoSoundMode"
+    private let pendingVideoAlarmIdKey = "alarmKitPendingVideoAlarmId"
+
+    /// 在调度时持久化的 videoSound 闹钟 ID 集合
+    /// 关键：isVideoSoundMode 内存变量在 fire time 通过 main.async 设置，
+    /// 但 App 被杀后后台启动时 main.async 被挂起，导致内存状态丢失。
+    /// 此集合在 scheduleAlarm 时写入，确保 App 重启后仍能判断 videoSound 模式。
+    private let videoSoundAlarmIdsKey = "alarmKitVideoSoundAlarmIds"
+
     private init() {
         observeAlarmUpdates()
+    }
+
+    // MARK: - VideoSound Alarm Registration (schedule-time persistence)
+
+    /// 在调度闹钟时注册 videoSound 模式（持久化到 UserDefaults）
+    /// 解决 App 被杀后 main.async 挂起导致 isVideoSoundMode 内存状态丢失的问题
+    private func registerVideoSoundAlarm(alarmId: String) {
+        var ids = UserDefaults.standard.array(forKey: videoSoundAlarmIdsKey) as? [String] ?? []
+        if !ids.contains(alarmId) {
+            ids.append(alarmId)
+            UserDefaults.standard.set(ids, forKey: videoSoundAlarmIdsKey)
+            AppLogger.alarm.info("AlarmKit: registered videoSound alarm \(alarmId, privacy: .public) at schedule time")
+        }
+    }
+
+    private func unregisterVideoSoundAlarm(alarmId: String) {
+        var ids = UserDefaults.standard.array(forKey: videoSoundAlarmIdsKey) as? [String] ?? []
+        ids.removeAll { $0 == alarmId }
+        UserDefaults.standard.set(ids, forKey: videoSoundAlarmIdsKey)
+    }
+
+    /// 检查指定闹钟是否为 videoSound 模式（从 UserDefaults 读取，不依赖内存状态）
+    /// 用于 handleAlarmDisappeared/Snoozed 和 StopAlarmIntent，避免误停止 videoSound 闹钟
+    func isVideoSoundAlarm(alarmId: String) -> Bool {
+        // 优先检查内存状态（实时性好）
+        if isVideoSoundMode { return true }
+        // 从 UserDefaults 恢复（App 冷启动后内存状态丢失）
+        let ids = UserDefaults.standard.array(forKey: videoSoundAlarmIdsKey) as? [String] ?? []
+        return ids.contains(alarmId)
     }
 
     /// App 启动时主动检查是否有正在响铃的 AlarmKit 闹钟
@@ -170,6 +219,13 @@ final class AlarmKitAdapter {
             sound: sound
         )
 
+        // 在调度时持久化 videoSound 模式状态
+        // 关键：App 被杀后 main.async 挂起，fire time 的 isVideoSoundMode 设置会延迟
+        // 必须在 schedule 时就记录，确保 App 重启后 handleAlarmDisappeared 能正确判断
+        if alarm.wrappedAudioSource == .videoSound && !(alarm.videoBackgroundName ?? "").isEmpty {
+            registerVideoSoundAlarm(alarmId: alarm.wrappedId)
+        }
+
         do {
             _ = try await AlarmManager.shared.schedule(id: uuid, configuration: configuration)
             AppLogger.alarm.info("AlarmKit: scheduled alarm \(alarm.wrappedId, privacy: .public)")
@@ -182,6 +238,7 @@ final class AlarmKitAdapter {
 
     func cancelAlarm(alarmId: String) {
         guard let uuid = UUID(uuidString: alarmId) else { return }
+        unregisterVideoSoundAlarm(alarmId: alarmId)
         Task {
             do {
                 try AlarmManager.shared.cancel(id: uuid)
@@ -196,6 +253,11 @@ final class AlarmKitAdapter {
     func stopAlarm(alarmId: String) {
         guard let uuid = UUID(uuidString: alarmId) else { return }
         audioServiceTookOver = false
+        isVideoSoundMode = false
+        pendingVideoAlarmKitId = nil
+        UserDefaults.standard.set(false, forKey: videoSoundModeKey)
+        UserDefaults.standard.removeObject(forKey: pendingVideoAlarmIdKey)
+        unregisterVideoSoundAlarm(alarmId: alarmId)
         Task {
             do {
                 try AlarmManager.shared.stop(id: uuid)
@@ -213,6 +275,24 @@ final class AlarmKitAdapter {
                 } catch {
                     // snooze 可能不存在，忽略
                 }
+            }
+        }
+    }
+
+    /// 停止作为"桥接音"的 AlarmKit 闹钟（videoSound 模式）
+    /// 当 VideoBackgroundView 开始播放视频音频时调用，避免双音叠加
+    func stopBridgeAlarmIfNeeded() {
+        guard isVideoSoundMode, let uuid = pendingVideoAlarmKitId else { return }
+        isVideoSoundMode = false
+        pendingVideoAlarmKitId = nil
+        UserDefaults.standard.set(false, forKey: videoSoundModeKey)
+        UserDefaults.standard.removeObject(forKey: pendingVideoAlarmIdKey)
+        Task {
+            do {
+                try AlarmManager.shared.stop(id: uuid)
+                AppLogger.alarm.info("AlarmKit: stopped bridge alarm for videoSound mode (video audio started)")
+            } catch {
+                AppLogger.alarm.error("AlarmKit: stop bridge alarm failed: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -310,6 +390,17 @@ final class AlarmKitAdapter {
         return uuid
     }
 
+    /// 纯计算版 snooze UUID 反转（不访问 CoreData，可在任意线程调用）
+    /// 用于 handleAlarmUpdate 中同步检查 videoSound 模式
+    private func computeSnoozeBaseId(_ snoozeUuid: UUID) -> String {
+        var uuid = snoozeUuid
+        withUnsafeMutableBytes(of: &uuid) { bytes in
+            guard bytes.count == 16 else { return }
+            bytes[15] ^= 0x01
+        }
+        return uuid.uuidString
+    }
+
     // MARK: - Alarm Updates
 
     private func observeAlarmUpdates() {
@@ -342,9 +433,26 @@ final class AlarmKitAdapter {
     /// 闹钟从 alarmUpdates 列表中完全消失（用户通过系统 UI 停止了闹钟）
     private func handleAlarmDisappeared(_ alarmUuid: UUID) {
         let alarmIdStr = alarmUuid.uuidString
-        AppLogger.alarm.info("AlarmKit: alarm disappeared \(alarmIdStr, privacy: .public)")
+        AppLogger.alarm.info("""
+            AlarmKit: alarm disappeared \(alarmIdStr, privacy: .public)
+            [DEBUG] Thread: \(Thread.isMainThread ? "main" : "background")
+            [DEBUG] audioServiceTookOver=\(self.audioServiceTookOver), isVideoSoundMode=\(self.isVideoSoundMode)
+            """)
 
-        let baseId = snoozeUuidToAlarmId[alarmUuid] ?? alarmIdStr
+        // 获取 baseId：优先用 snooze 映射，其次纯计算反推 snooze UUID，最后用原始 UUID
+        // 使用 computeSnoozeBaseId（纯计算，不访问 CoreData），可在后台线程安全调用
+        let baseId: String
+        if let mappedId = snoozeUuidToAlarmId[alarmUuid] {
+            baseId = mappedId
+        } else {
+            let computedBaseId = computeSnoozeBaseId(alarmUuid)
+            // 如果计算出的 baseId 在 videoSound 注册集合中，说明这是 snooze 闹钟
+            if isVideoSoundAlarm(alarmId: computedBaseId) {
+                baseId = computedBaseId
+            } else {
+                baseId = alarmIdStr
+            }
+        }
         snoozeUuidToAlarmId.removeValue(forKey: alarmUuid)
 
         // 如果 AudioService 已接管播放，这个 disappeared 是我们自己调用 stop 导致的
@@ -352,6 +460,23 @@ final class AlarmKitAdapter {
         if audioServiceTookOver {
             AppLogger.alarm.info("AlarmKit: ignoring disappeared - AudioService took over")
             audioServiceTookOver = false
+            return
+        }
+
+        // W1 修复：videoSound 模式下，AlarmKit 作为"桥接音"被停止是预期行为
+        // 用户点击通知打开 APP → AlarmKit 系统 UI 关闭 → 闹钟消失
+        // 此时 VideoBackgroundView 应该正在播放视频音频，不应发送 .alarmDidStop
+        //
+        // 关键修复：使用 isVideoSoundAlarm(baseId) 检查 UserDefaults 持久化状态，
+        // 而非 isVideoSoundMode 内存变量。App 冷启动后 main.async 被挂起，
+        // isVideoSoundMode 未被设置，会导致误停止 videoSound 闹钟。
+        if isVideoSoundAlarm(alarmId: baseId) {
+            AppLogger.alarm.info("AlarmKit: ignoring disappeared - videoSound mode (bridge alarm stopped, video audio active)")
+            isVideoSoundMode = false
+            pendingVideoAlarmKitId = nil
+            UserDefaults.standard.set(false, forKey: videoSoundModeKey)
+            UserDefaults.standard.removeObject(forKey: pendingVideoAlarmIdKey)
+            unregisterVideoSoundAlarm(alarmId: baseId)
             return
         }
 
@@ -372,13 +497,36 @@ final class AlarmKitAdapter {
         let alarmIdStr = alarmUuid.uuidString
         AppLogger.alarm.info("AlarmKit: alarm snoozed \(alarmIdStr, privacy: .public)")
 
-        let baseId = snoozeUuidToAlarmId[alarmUuid] ?? alarmIdStr
+        // 获取 baseId：优先用 snooze 映射，其次纯计算反推 snooze UUID，最后用原始 UUID
+        let baseId: String
+        if let mappedId = snoozeUuidToAlarmId[alarmUuid] {
+            baseId = mappedId
+        } else {
+            let computedBaseId = computeSnoozeBaseId(alarmUuid)
+            if isVideoSoundAlarm(alarmId: computedBaseId) {
+                baseId = computedBaseId
+            } else {
+                baseId = alarmIdStr
+            }
+        }
         snoozeUuidToAlarmId.removeValue(forKey: alarmUuid)
 
         // 如果 AudioService 已接管播放，这个 snoozed 是我们自己调用 stop 导致的
         if audioServiceTookOver {
             AppLogger.alarm.info("AlarmKit: ignoring snoozed - AudioService took over")
             audioServiceTookOver = false
+            return
+        }
+
+        // W1 修复：videoSound 模式下，忽略 snoozed 事件
+        // 桥接音被停止不应触发 snooze 流程
+        // 关键修复：使用 isVideoSoundAlarm(baseId) 检查 UserDefaults 持久化状态
+        if isVideoSoundAlarm(alarmId: baseId) {
+            AppLogger.alarm.info("AlarmKit: ignoring snoozed - videoSound mode")
+            isVideoSoundMode = false
+            pendingVideoAlarmKitId = nil
+            UserDefaults.standard.set(false, forKey: videoSoundModeKey)
+            UserDefaults.standard.removeObject(forKey: pendingVideoAlarmIdKey)
             return
         }
 
@@ -398,119 +546,162 @@ final class AlarmKitAdapter {
         let alarmKitUuid = alarm.id
         let alarmKitIdStr = alarmKitUuid.uuidString
 
-        switch alarm.state {
-        case .alerting:
-            AppLogger.alarm.info("AlarmKit: alerting \(alarmKitIdStr, privacy: .public)")
+        guard alarm.state == .alerting else { return }
+        AppLogger.alarm.info("AlarmKit: alerting \(alarmKitIdStr, privacy: .public)")
 
-            // 判断是否是 snooze 闹钟：检查 snoozeUuidToAlarmId 映射或确定性派生反查
-            let baseId: String
-            if let mappedId = snoozeUuidToAlarmId[alarmKitUuid] {
-                baseId = mappedId
-                AppLogger.alarm.info("AlarmKit: snooze alarm matched via mapping -> \(baseId, privacy: .public)")
+        // 关键修复：同步设置 isVideoSoundMode（不等 main.async）
+        // App 在后台时 main.async 被挂起，handleAlarmDisappeared 可能在 main.async 之前执行，
+        // 导致 isVideoSoundMode 为 false，误停止 videoSound 闹钟。
+        // 通过 UserDefaults 持久化状态同步恢复内存变量。
+        // 注意：此处不调用 reverseSnoozeToBaseId（它访问 CoreData，需主线程），
+        // 而是用纯计算的 snoozeBaseId，检查是否在 videoSound 注册集合中。
+        let baseId: String
+        if let mappedId = snoozeUuidToAlarmId[alarmKitUuid] {
+            baseId = mappedId
+        } else {
+            let computedSnoozeBaseId = computeSnoozeBaseId(alarmKitUuid)
+            if isVideoSoundAlarm(alarmId: computedSnoozeBaseId) {
+                baseId = computedSnoozeBaseId
             } else {
-                // 尝试反查：检查所有已知 alarmId 的 snoozeUuid 是否匹配
                 baseId = alarmKitIdStr
             }
+        }
+        if isVideoSoundAlarm(alarmId: baseId) && !isVideoSoundMode {
+            isVideoSoundMode = true
+            pendingVideoAlarmKitId = alarmKitUuid
+            AppLogger.alarm.info("AlarmKit: pre-set isVideoSoundMode=true for \(baseId, privacy: .public) (sync, before main.async)")
+        }
 
-            // 从 CoreData 获取闹钟配置
-            let context = PersistenceController.shared.viewContext
-            let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
-            fetchRequest.predicate = NSPredicate(format: "id == %@", baseId)
-
-            if let alarmItem = try? context.fetch(fetchRequest).first {
-                let soundName = alarmItem.wrappedSoundName
-                let volume = alarmItem.volume
-                let isFadeIn = alarmItem.isFadeIn
-                let fadeInDuration = alarmItem.fadeInDuration
-                let audioSource = alarmItem.wrappedAudioSource
-                let videoBackgroundName = alarmItem.videoBackgroundName ?? ""
-
-                // 如果 AudioService 还没在播放（避免 UNNotification 已触发时重复播放）
-                if !AudioService.shared.isPlaying {
-                    BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: baseId)
-
-                    if audioSource == .videoSound && !videoBackgroundName.isEmpty {
-                        // 视频原声模式：不播放闹钟铃声，由 VideoBackgroundView 播放视频音频
-                        AppLogger.alarm.info("AlarmKit: videoSound mode, preparing AudioSession for video \(videoBackgroundName, privacy: .public)")
-                        _ = AudioService.shared.prepareForVideoAlarm()
-                        VolumeManager.shared.boostSystemVolume(to: alarmItem.videoVolume)
-                    } else {
-                        AppLogger.alarm.info("AlarmKit: AudioService接管播放 \(soundName, privacy: .public) vol \(volume, privacy: .public)")
-                        AudioService.shared.playAlarm(
-                            soundName: soundName,
-                            volume: volume,
-                            fadeIn: isFadeIn,
-                            fadeInDuration: fadeInDuration
-                        )
-                    }
-
-                    // AudioService 已接管播放，停止 AlarmKit 闹钟避免双音叠加
-                    // 双音叠加会导致：AlarmKit 以系统音量播放 + AudioService 以 alarmVolume 播放
-                    // 当 AlarmKit 系统 UI 消失后只剩 AudioService，音量骤降
-                    audioServiceTookOver = true
-                    Task {
-                        do {
-                            try AlarmManager.shared.stop(id: alarmKitUuid)
-                            AppLogger.alarm.info("AlarmKit: stopped alarm after AudioService takeover (avoid dual sound)")
-                        } catch {
-                            AppLogger.alarm.error("AlarmKit: stop after takeover failed: \(error.localizedDescription, privacy: .public)")
-                        }
-                    }
-                }
-            } else {
-                // CoreData 未找到：可能是 snooze 闹钟但映射丢失（App 重启后）
-                // 尝试用 alarmKitIdStr 反向派生 baseId
-                if let reverseBaseId = reverseSnoozeToBaseId(alarmKitUuid) {
-                    let fetchRequest2 = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
-                    fetchRequest2.predicate = NSPredicate(format: "id == %@", reverseBaseId)
-                    if let alarmItem = try? context.fetch(fetchRequest2).first {
-                        if !AudioService.shared.isPlaying {
-                            BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: reverseBaseId)
-                            AppLogger.alarm.info("AlarmKit: snooze reverse-matched -> \(reverseBaseId, privacy: .public)")
-
-                            if alarmItem.wrappedAudioSource == .videoSound && !(alarmItem.videoBackgroundName ?? "").isEmpty {
-                                _ = AudioService.shared.prepareForVideoAlarm()
-                                VolumeManager.shared.boostSystemVolume(to: alarmItem.videoVolume)
-                            } else {
-                                AudioService.shared.playAlarm(
-                                    soundName: alarmItem.wrappedSoundName,
-                                    volume: alarmItem.volume,
-                                    fadeIn: alarmItem.isFadeIn,
-                                    fadeInDuration: alarmItem.fadeInDuration
-                                )
-                            }
-
-                            // AudioService 已接管，停止 AlarmKit 避免双音
-                            audioServiceTookOver = true
-                            Task {
-                                do {
-                                    try AlarmManager.shared.stop(id: alarmKitUuid)
-                                    AppLogger.alarm.info("AlarmKit: stopped snooze alarm after AudioService takeover")
-                                } catch { }
-                            }
-                        }
-                        // 直接发送通知，不使用 main.async（App 在后台时 main.async 被挂起）
-                        NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
-                            "alarmId": reverseBaseId,
-                            "alarmKit": true
-                        ])
-                        return
-                    }
-                }
-                AppLogger.alarm.warning("AlarmKit: alerting but alarm not found in CoreData for \(baseId, privacy: .public)")
+        // W1 修复：将 CoreData 访问和状态修改移到主线程
+        // viewContext 是 mainQueueConcurrencyType，后台线程访问可能导致失败或不可预测行为
+        // 如果已在主线程，直接调用避免 main.async 延迟
+        if Thread.isMainThread {
+            handleAlertingAlarmOnMainThread(alarmKitUuid: alarmKitUuid, alarmKitIdStr: alarmKitIdStr)
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.handleAlertingAlarmOnMainThread(alarmKitUuid: alarmKitUuid, alarmKitIdStr: alarmKitIdStr)
             }
+        }
+    }
 
-            // 直接发送 .alarmDidFire，不使用 DispatchQueue.main.async
-            // 原因：App 在后台时 main.async 会被挂起，导致 isRinging 不被设置 -> 无 UI
-            // NotificationCenter.post 是线程安全的，handleAlarmFired 内部也不使用 main.async
+    /// 在主线程处理 alerting 状态的 AlarmKit 闹钟
+    private func handleAlertingAlarmOnMainThread(alarmKitUuid: UUID, alarmKitIdStr: String) {
+        // 判断是否是 snooze 闹钟：检查 snoozeUuidToAlarmId 映射或确定性派生反查
+        let baseId: String
+        if let mappedId = snoozeUuidToAlarmId[alarmKitUuid] {
+            baseId = mappedId
+            AppLogger.alarm.info("AlarmKit: snooze alarm matched via mapping -> \(baseId, privacy: .public)")
+        } else {
+            baseId = alarmKitIdStr
+        }
+
+        // 从 CoreData 获取闹钟配置
+        let context = PersistenceController.shared.viewContext
+        let fetchRequest = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+        fetchRequest.predicate = NSPredicate(format: "id == %@", baseId)
+
+        guard let alarmItem = try? context.fetch(fetchRequest).first else {
+            // CoreData 未找到：可能是 snooze 闹钟但映射丢失（App 重启后）
+            handleAlertingAlarmWhenCoreDataMissing(alarmKitUuid: alarmKitUuid, alarmKitIdStr: alarmKitIdStr)
+            return
+        }
+
+        // 如果 AudioService 已经在播放（UNNotification 已触发），避免重复播放但仍需通知 UI
+        if AudioService.shared.isPlaying {
             NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
                 "alarmId": baseId,
                 "alarmKit": true
             ])
-
-        default:
-            break
+            return
         }
+
+        BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: baseId)
+
+        let audioSource = alarmItem.wrappedAudioSource
+        let videoBackgroundName = alarmItem.videoBackgroundName ?? ""
+
+        if audioSource == .videoSound && !videoBackgroundName.isEmpty {
+            // 视频原声模式：AlarmKit 作为"桥接音"继续播放，直到 UI 显示
+            AppLogger.alarm.info("AlarmKit: videoSound mode, keeping AlarmKit as bridge for video \(videoBackgroundName, privacy: .public)")
+            _ = AudioService.shared.prepareForVideoAlarm()
+            VolumeManager.shared.boostSystemVolume(to: alarmItem.videoVolume)
+
+            // 标记为 videoSound 模式并持久化
+            isVideoSoundMode = true
+            pendingVideoAlarmKitId = alarmKitUuid
+            UserDefaults.standard.set(true, forKey: videoSoundModeKey)
+            UserDefaults.standard.set(alarmKitUuid.uuidString, forKey: pendingVideoAlarmIdKey)
+        } else {
+            AppLogger.alarm.info("AlarmKit: AudioService接管播放 \(alarmItem.wrappedSoundName, privacy: .public) vol \(alarmItem.volume, privacy: .public)")
+            AudioService.shared.playAlarm(
+                soundName: alarmItem.wrappedSoundName,
+                volume: alarmItem.volume,
+                fadeIn: alarmItem.isFadeIn,
+                fadeInDuration: alarmItem.fadeInDuration
+            )
+
+            // alarmSound 模式：AudioService 已接管，立即停止 AlarmKit 避免双音
+            audioServiceTookOver = true
+            Task {
+                do {
+                    try AlarmManager.shared.stop(id: alarmKitUuid)
+                    AppLogger.alarm.info("AlarmKit: stopped alarm after AudioService takeover (avoid dual sound)")
+                } catch {
+                    AppLogger.alarm.error("AlarmKit: stop after takeover failed: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+        }
+
+        NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
+            "alarmId": baseId,
+            "alarmKit": true
+        ])
+    }
+
+    /// CoreData 找不到 alerting 闹钟时的兜底处理
+    private func handleAlertingAlarmWhenCoreDataMissing(alarmKitUuid: UUID, alarmKitIdStr: String) {
+        // 尝试反查：可能是 snooze 闹钟但映射丢失
+        if let reverseBaseId = reverseSnoozeToBaseId(alarmKitUuid) {
+            let context = PersistenceController.shared.viewContext
+            let fetchRequest2 = NSFetchRequest<AlarmItem>(entityName: "AlarmItem")
+            fetchRequest2.predicate = NSPredicate(format: "id == %@", reverseBaseId)
+            if let alarmItem = try? context.fetch(fetchRequest2).first {
+                if !AudioService.shared.isPlaying {
+                    BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: reverseBaseId)
+                    AppLogger.alarm.info("AlarmKit: snooze reverse-matched -> \(reverseBaseId, privacy: .public)")
+
+                    if alarmItem.wrappedAudioSource == .videoSound && !(alarmItem.videoBackgroundName ?? "").isEmpty {
+                        _ = AudioService.shared.prepareForVideoAlarm()
+                        VolumeManager.shared.boostSystemVolume(to: alarmItem.videoVolume)
+                        isVideoSoundMode = true
+                        pendingVideoAlarmKitId = alarmKitUuid
+                        UserDefaults.standard.set(true, forKey: videoSoundModeKey)
+                        UserDefaults.standard.set(alarmKitUuid.uuidString, forKey: pendingVideoAlarmIdKey)
+                    } else {
+                        AudioService.shared.playAlarm(
+                            soundName: alarmItem.wrappedSoundName,
+                            volume: alarmItem.volume,
+                            fadeIn: alarmItem.isFadeIn,
+                            fadeInDuration: alarmItem.fadeInDuration
+                        )
+                        audioServiceTookOver = true
+                        Task {
+                            do {
+                                try AlarmManager.shared.stop(id: alarmKitUuid)
+                                AppLogger.alarm.info("AlarmKit: stopped snooze alarm after AudioService takeover")
+                            } catch { }
+                        }
+                    }
+                }
+                NotificationCenter.default.post(name: .alarmDidFire, object: nil, userInfo: [
+                    "alarmId": reverseBaseId,
+                    "alarmKit": true
+                ])
+                return
+            }
+        }
+        AppLogger.alarm.warning("AlarmKit: alerting but alarm not found in CoreData for \(alarmKitIdStr, privacy: .public)")
     }
 
     /// 反向推导：给定一个可能的 snoozeUuid，尝试找到对应的 baseId

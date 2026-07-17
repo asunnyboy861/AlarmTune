@@ -9,6 +9,11 @@ class AlarmScheduler: NSObject {
 
     private let notificationCenter = UNUserNotificationCenter.current()
 
+    /// 冷启动时保存用户点击通知的 userInfo
+    /// 当 APP 被杀后用户点击通知打开 APP，didReceive 可能在 AlarmViewModel.init() 之前被调用
+    /// 此时 .alarmDidFire 通知无人接收，需要保存到此处，由 AlarmViewModel.init() 检查
+    var pendingLaunchAlarmUserInfo: [AnyHashable: Any]?
+
     private override init() {
         super.init()
         notificationCenter.delegate = self
@@ -392,6 +397,10 @@ extension AlarmScheduler: UNUserNotificationCenterDelegate {
                 BackgroundAudioKeeper.shared.handoverToAudioService(alarmId: alarmId)
             }
             handleAlarmNotification(userInfo: userInfo)
+
+            // 冷启动场景：didReceive 可能在 AlarmViewModel.init() 之前被调用
+            // 此时 .alarmDidFire 无人接收，保存 userInfo 供 AlarmViewModel.init() 检查
+            AlarmScheduler.shared.pendingLaunchAlarmUserInfo = userInfo
 
         case UNNotificationDismissActionIdentifier:
             // M3 新增：处理用户划走通知（之前 default: break，导致一次性闹钟不自动禁用）

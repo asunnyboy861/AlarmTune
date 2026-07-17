@@ -24,10 +24,9 @@ struct StopAlarmIntent: LiveActivityIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        // 停止 AlarmKit 闹钟
-        if let uuid = UUID(uuidString: alarmID) {
-            try? AlarmManager.shared.stop(id: uuid)
-        }
+        // 通过 AlarmKitAdapter 停止 AlarmKit 闹钟（同时清理 videoSound 注册状态）
+        // 不直接调用 AlarmManager.shared.stop()，避免 videoSound 注册泄漏
+        AlarmKitAdapter.shared.stopAlarm(alarmId: alarmID)
 
         // 停止 AudioService
         if AudioService.shared.isPlaying {
@@ -85,9 +84,8 @@ struct SnoozeAlarmIntent: LiveActivityIntent {
         }
 
         // 停止 AlarmKit 闹钟（snooze 会在 scheduleSnooze 中重新调度）
-        if let uuid = UUID(uuidString: alarmID) {
-            try? AlarmManager.shared.stop(id: uuid)
-        }
+        // 通过 AlarmKitAdapter 停止，同时清理 videoSound 注册状态
+        AlarmKitAdapter.shared.stopAlarm(alarmId: alarmID)
 
         BackgroundAudioKeeper.shared.cancelBackgroundPlayback(for: alarmID)
 

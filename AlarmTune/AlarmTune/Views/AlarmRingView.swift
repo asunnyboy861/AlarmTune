@@ -136,6 +136,13 @@ struct AlarmRingView: View {
             withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
                 pulseScale = 1.3
             }
+
+            // W1 修复：videoSound 模式下，停止 AlarmKit 桥接音
+            // AlarmKit 在视频闹钟触发时播放铃声作为"桥接音"，
+            // 等 VideoBackgroundView 开始播放视频音频后停止，避免双音叠加
+            if #available(iOS 26.0, *) {
+                AlarmKitAdapter.shared.stopBridgeAlarmIfNeeded()
+            }
         }
     }
 
