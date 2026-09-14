@@ -135,7 +135,7 @@ final class VideoImportService: ObservableObject {
 
     /// 刷新导入视频列表
     func refreshImportedVideos() {
-        let allowedExtensions = Set(["mp4", "mov", "m4v"])
+        let allowedExtensions = AppConstants.Video.supportedVideoExtensions
         let files = (try? FileManager.default.contentsOfDirectory(at: importedDir, includingPropertiesForKeys: [.fileSizeKey])) ?? []
 
         importedVideos = files.compactMap { url in

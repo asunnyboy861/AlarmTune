@@ -11,6 +11,7 @@ struct SoundPickerView: View {
     @State private var showDocumentPicker = false
     @State private var showImportLimitAlert = false
     @State private var showImportFailedAlert = false
+    @State private var importError: SoundImportError?  // I3 新增：存储具体的导入错误，用于弹窗展示精准信息
     @State private var showPaywall = false
     @State private var showAIGenerator = false  // M8.3 新增
     @State private var showSubscriptionAlert = false  // M6 新增
@@ -64,12 +65,19 @@ struct SoundPickerView: View {
             }
             .sheet(isPresented: $showDocumentPicker) {
                 DocumentPickerWrapper { url in
-                    if let soundId = SoundImportService.shared.importFile(from: url) {
+                    // I3 修改：使用带错误的导入方法，根据错误类型展示精准提示
+                    let result = SoundImportService.shared.importFileWithError(from: url)
+                    switch result {
+                    case .success(let soundId):
                         selectedSound = soundId
-                    } else if !SoundImportService.shared.canImportMore {
-                        showImportLimitAlert = true
-                    } else {
-                        showImportFailedAlert = true
+                        importError = nil
+                    case .failure(let error):
+                        if case .quotaExceeded = error {
+                            showImportLimitAlert = true
+                        } else {
+                            importError = error
+                            showImportFailedAlert = true
+                        }
                     }
                 }
             }
@@ -82,7 +90,12 @@ struct SoundPickerView: View {
             .alert("Import Failed", isPresented: $showImportFailedAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Could not import this audio file. Please make sure it's a supported format.")
+                // I3 修改：根据错误类型展示精准信息 + 列出支持格式
+                if let error = importError {
+                    Text(error.errorDescription ?? "Could not import this audio file.")
+                } else {
+                    Text("Could not import this audio file. Supported formats: \(AppConstants.Sound.supportedAudioFormatDescription)")
+                }
             }
             .alert("Apple Music Required", isPresented: $showSubscriptionAlert) {
                 Button("OK", role: .cancel) {}
@@ -270,6 +283,12 @@ struct SoundPickerView: View {
                     .font(.system(size: 15))
                     .foregroundColor(.accentColor)
                 }
+
+                // I3 新增：支持的格式提示（继承空状态说明的 .caption + .secondary 风格）
+                Text("Supported formats: \(AppConstants.Sound.supportedAudioFormatDescription)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
             } else {
                 // 免费用户配额已满，显示升级按钮
                 Button {

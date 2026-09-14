@@ -208,6 +208,39 @@ enum AppConstants {
         ]
 
         static let defaultSound = "Gentle Morning"
+
+        /// I1 新增：支持的音频文件扩展名（小写，不含点号）
+        /// 用于：导入列表过滤（SoundImportService）+ 播放文件查找（AudioService）+ UI 格式提示
+        /// 三处复用，遵循三次法则抽象为常量
+        /// 注意：修改此列表需同步检查 AVAudioPlayer 是否支持对应格式
+        static let supportedAudioExtensions: Set<String> = ["mp3", "m4a", "wav", "aiff", "caf"]
+
+        /// I1 新增：支持的音频格式用户可读描述（用于 UI 提示）
+        /// 格式：AIFF, CAF, M4A, MP3, WAV（大写，字母排序，逗号分隔）
+        /// 用于：SoundPickerView 的 Import 按钮提示 + 错误弹窗
+        static var supportedAudioFormatDescription: String {
+            supportedAudioExtensions
+                .map { $0.uppercased() }
+                .sorted()
+                .joined(separator: ", ")
+        }
+    }
+
+    /// V1 新增：视频相关常量（与 AppConstants.Sound 风格一致）
+    enum Video {
+        /// 支持的视频文件扩展名（小写，不含点号）
+        /// 用于：导入列表过滤（VideoImportService）+ UI 格式提示（VideoBackgroundPickerView）
+        /// 注意：修改此列表需同步检查 AVAssetExportSession 是否支持对应格式
+        static let supportedVideoExtensions: Set<String> = ["mp4", "mov", "m4v"]
+
+        /// 支持的视频格式用户可读描述（用于 UI 提示）
+        /// 格式：M4V, MOV, MP4（大写，字母排序，逗号分隔）
+        static var supportedVideoFormatDescription: String {
+            supportedVideoExtensions
+                .map { $0.uppercased() }
+                .sorted()
+                .joined(separator: ", ")
+        }
     }
 
     enum Feedback {

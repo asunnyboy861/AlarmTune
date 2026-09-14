@@ -477,7 +477,7 @@ class AudioService: NSObject, ObservableObject, AVAudioPlayerDelegate {
         }
 
         let sanitizedName = lookupName.replacingOccurrences(of: " ", with: "")
-        let extensions = ["caf", "mp3", "aiff", "wav", "m4a"]
+        let extensions = Array(AppConstants.Sound.supportedAudioExtensions)
         let directories: [String?] = ["Sounds", nil]
 
         for dir in directories {

@@ -99,7 +99,7 @@ struct VideoBackgroundPickerView: View {
             .alert("Import Failed", isPresented: $showImportError) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text("Failed to import video. Please try a different video or check available storage.")
+                Text("Failed to import video. Supported formats: \(AppConstants.Video.supportedVideoFormatDescription). Please try a different video.")
             }
             .overlay {
                 if isImporting {
@@ -302,6 +302,12 @@ struct VideoBackgroundPickerView: View {
                         .font(.system(size: 15))
                         .foregroundColor(.accentColor)
                     }
+
+                    // V3 新增：视频格式提示（与 SoundPickerView 音频格式提示风格一致）
+                    Text("Supported formats: \(AppConstants.Video.supportedVideoFormatDescription)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .padding(.top, 2)
 
                     if !subscriptionService.isPremium {
                         Text("\(importService.remainingFreeImports) free import remaining")
